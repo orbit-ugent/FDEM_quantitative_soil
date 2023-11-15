@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.constants import pi, epsilon_0
 
-# def linde(vwc, bd, clay, water_ec, sand, silt, pdn=2.65, m=1.5, n=2):
 def linde(vwc, bd, sand, clay, water_ec, pdn=2.65, m=1.5, n=2):
     """        
         Parameters
@@ -283,7 +282,49 @@ def LongmireSmithEC(bulk_ec_dc, frequency_ec):
         bulk_ec = bulk_ec_dc + sum(bulk_eci_)
         return bulk_ec
     
-def rmse(predictions, targets):
+    
+def SheetsHendrickxEC(ECa, temp):
+    """
+    Calculate the temperature-corrected bulk real electrical conductivity of soil using the Sheets-Hendricks model.
+
+    This function adjusts the apparent electrical conductivity (ECa) of soil to a standard temperature of 25°C. The adjustment is based on the Sheets-Hendricks model.
+
+    Parameters
+    ----------
+    ECa : array_like
+        Apparent electrical conductivity of soil at the measurement temperature [S/m].
+    temp : array_like or float
+        Temperature at which the ECa was measured [°C].
+
+    Returns
+    -------
+    array_like
+        Temperature-corrected electrical conductivity at 25°C [S/m].
+
+    Notes
+    -----
+    The Sheets-Hendricks model applies a temperature correction factor to adjust the apparent electrical conductivity to a standard temperature of 25°C. This correction is particularly important in precision agriculture and soil science studies where temperature fluctuations can significantly affect conductivity measurements.
+
+    Example
+    -------
+    >>> SheetsHendrickxEC(np.array([1.2, 2.5]), 20)
+    array([0.13352103, 0.27816881])
+    """
+    ft = 0.447+1.4034*np.exp(-temp/26.815) # Temperature conversion factor
+    EC25 = ECa*ft
+    return EC25
+
+
+def WraithOr(ECw, temp):
+    """
+    
+    """
+    diff = temp-25
+    ECw25 = ECw*np.exp(-diff*(2.033e-2 - 1.266e-4*diff + 2.464e-6*diff**2))
+    return ECw25
+
+
+def RMSE(predictions, targets):
     """
     Compute the Root Mean Square Error.
 
