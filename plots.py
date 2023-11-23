@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 def plot3(ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8, ax9, ax10, ax11, ax12, ax13, ax14, ax15):
     ax1.legend(loc='upper right', fontsize = 8)
@@ -217,4 +218,47 @@ def plot_results(df, actual, predicted, r2_val, rmse_val, scale, title):
     axes.grid(True)
     axes.set_xlim([0, 0.6])
     axes.set_ylim([0, 0.6])
+    plt.show()
+
+
+def plot_detR2(results, feature_set, target, profile_prefix, em_intype, s_site, indicator):
+    # Create subplots
+    fig, axes = plt.subplots(nrows=len(feature_set), ncols=1, figsize=(10, 3 * len(feature_set)), sharex=True, sharey=True)
+
+    for idx, (feature, scores) in enumerate(results.items()):
+        ax = axes[idx]
+        sns.histplot(scores['wat_lt'], ax=ax, color='blue', label='wat_lt', kde=True, stat="density", linewidth=0)
+        sns.histplot(scores['ideal_wat'], ax=ax, color='green', label='ideal_wat', kde=True, stat="density", linewidth=0)
+        sns.histplot(scores['wat_ls'], ax=ax, color='red', label='wat_ls', kde=True, stat="density", linewidth=0)
+
+        # Highlight median and mean
+        ax.axvline(x=np.median(scores['wat_lt'][indicator]), color='blue', linestyle='--')
+        ax.axvline(x=np.median(scores['ideal_wat'][indicator]), color='green', linestyle='--')
+        ax.axvline(x=np.median(scores['wat_ls'][indicator]), color='red', linestyle='--')
+        ax.axvline(x=np.mean(scores['wat_lt'][indicator]), color='blue', linestyle=':', alpha=0.7)
+        ax.axvline(x=np.mean(scores['ideal_wat'][indicator]), color='green', linestyle=':', alpha=0.7)
+        ax.axvline(x=np.mean(scores['wat_ls'][indicator]), color='red', linestyle=':', alpha=0.7)
+
+        # Set x-axis limits
+        ax.set_xlim(-10, 1)
+
+        # Set y-axis limits
+        ax.set_ylim(0, 0.5)
+        
+        # Set y-axis label
+        ax.set_ylabel(f'{feature} R2 density')
+
+        ax.legend()
+
+    # Set the overall figure title
+    plt.suptitle(f'Deterministic {target} R2 Score distribution at {profile_prefix}, {em_intype}', fontsize=16)
+
+    # Adjust layout
+    plt.tight_layout(rect=[0, 0.03, 1, 0.98])
+
+    # Save the figure with a filename that includes s_site and em_intype
+    filename = f"{target}_R2det_{s_site}_{em_intype}.png"
+    plt.savefig(filename)
+
+    # Show the plot
     plt.show()
