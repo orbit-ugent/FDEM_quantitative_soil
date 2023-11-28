@@ -83,3 +83,102 @@ for depth_ in [10, 50]:
 R2_stochastic
 
 ######################################################################################################################################################
+
+# Initialize DataFrames with one row for the single target
+R2_deterministic = pd.DataFrame(columns=['Target', 'Best EC feature LT', 'R2 LT', 'Best EC feature ID', 'R2 ID', 'Best EC feature LS', 'R2 LS'],
+                                index=[0])
+
+RMSE_deterministic = pd.DataFrame(columns=['Target', 'Best EC feature LT', 'RMSE LT', 'Best EC feature ID', 'RMSE ID', 'Best EC feature LS', 'RMSE LS'],
+                                  index=[0])
+
+error_criteria_selection = 'RMSE'
+
+# Initialize variables to store best features and their scores
+median_RMSE_LT_, median_RMSE_LS_, median_RMSE_ID_ = [], [], []
+median_R2_LT_, median_R2_LS_, median_R2_ID_ = [], [], []
+
+# Iterate over features to find the best one
+for feature, scores in results.items():
+    median_R2_LT = np.median(scores['LT']['R2'])
+    median_R2_LS = np.median(scores['LS']['R2'])
+    median_R2_ID = np.median(scores['ID']['R2'])
+
+    median_RMSE_LT = np.median(scores['LT']['RMSE'])
+    median_RMSE_LS = np.median(scores['LS']['RMSE'])
+    median_RMSE_ID = np.median(scores['ID']['RMSE'])
+
+    median_RMSE_LT_.append(median_RMSE_LT)
+    median_RMSE_LS_.append(median_RMSE_LS)
+    median_RMSE_ID_.append(median_RMSE_ID)
+
+    median_R2_LT_.append(median_R2_LT)
+    median_R2_LS_.append(median_R2_LS)
+    median_R2_ID_.append(median_R2_ID)
+
+    if error_criteria_selection == 'RMSE':
+        best_feature_LT = median_RMSE_LT_.index(np.min(median_RMSE_LT_))
+        best_feature_LS = median_RMSE_LS_.index(np.min(median_RMSE_LS_))
+        best_feature_ID = median_RMSE_ID_.index(np.min(median_RMSE_ID_))
+
+    if error_criteria_selection == 'R2':
+        best_feature_LT = median_R2_LT_.index(np.min(median_R2_LT_))
+        best_feature_LS = median_R2_LS_.index(np.min(median_R2_LS_))
+        best_feature_ID = median_R2_ID_.index(np.min(median_R2_ID_))
+
+
+# Update DataFrames
+R2_deterministic.loc[0] = [target, best_feature_LT, max_r2_lt, best_feature_r2_ls, max_r2_ls, best_feature_r2_ideal, max_r2_ideal]
+RMSE_deterministic.loc[0] = [target, best_feature_LT, min_rmse_lt, best_feature_rmse_ls, min_rmse_ls, best_feature_rmse_ideal, min_rmse_ideal]
+#################################################################################
+
+error_criteria_selection='R2'
+
+    if error_criteria_selection == 'RMSE':
+
+        RMSE_median_10 = [np.median(RMSE_test_n1_10), np.median(RMSE_test_n2_10), np.median(RMSE_test_n3_10), np.median(RMSE_test_n4_10)]
+        best_n_10 = RMSE_median_10.index(np.min(RMSE_median_10))
+
+        RMSE_median_50 = [np.median(RMSE_test_n1_50), np.median(RMSE_test_n2_50), np.median(RMSE_test_n3_50), np.median(RMSE_test_n4_50)]
+        best_n_50 = RMSE_median_50.index(np.min(RMSE_median_50))
+
+        RMSE_median_LS = [np.median(RMSE_test_n1_LS), np.median(RMSE_test_n2_LS), np.median(RMSE_test_n3_LS), np.median(RMSE_test_n4_LS)]
+        best_n = RMSE_median_LS.index(np.min(RMSE_median_LS))
+
+        RMSE_median_LT = [np.median(RMSE_test_n1_LT), np.median(RMSE_test_n2_LT), np.median(RMSE_test_n3_LT), np.median(RMSE_test_n4_LT)]
+        best_n_LT = RMSE_median_LT.index(np.min(RMSE_median_LT))
+
+    elif error_criteria_selection == 'R2':
+
+        R2_median_10 = [np.median(R2_test_n1_10), np.median(R2_test_n2_10), np.median(R2_test_n3_10), np.median(R2_test_n4_10)]
+        best_n_10 = R2_median_10.index(np.max(R2_median_10))
+
+        R2_median_50 = [np.median(R2_test_n1_50), np.median(R2_test_n2_50), np.median(R2_test_n3_50), np.median(R2_test_n4_50)]
+        best_n_50 = R2_median_50.index(np.max(R2_median_50))
+
+        R2_median = [np.median(R2_test_n1_LS), np.median(R2_test_n2_LS), np.median(R2_test_n3_LS), np.median(R2_test_n4_LS)]
+        best_n = R2_median.index(np.max(R2_median))
+
+        R2_median_LT = [np.median(R2_test_n1_LT), np.median(R2_test_n2_LT), np.median(R2_test_n3_LT), np.median(R2_test_n4_LT)]
+        best_n_LT = R2_median_LT.index(np.max(R2_median_LT))
+
+##########
+        R2_test_n0_10 = [inner_list[0] for inner_list in SR2_test_10_]
+        R2_test_n1_10 = [inner_list[1] for inner_list in SR2_test_10_]
+        R2_test_n2_10 = [inner_list[2] for inner_list in SR2_test_10_]
+        R2_test_n3_10 = [inner_list[3] for inner_list in SR2_test_10_]
+
+        R2_test_n0_50 = [inner_list[0] for inner_list in SR2_test_50_]
+        R2_test_n1_50 = [inner_list[1] for inner_list in SR2_test_50_]
+        R2_test_n2_50 = [inner_list[2] for inner_list in SR2_test_50_]
+        R2_test_n3_50 = [inner_list[3] for inner_list in SR2_test_50_]
+
+
+        RMSE_test_n0_10 = [inner_list[0] for inner_list in SRMSE_test_10_]
+        RMSE_test_n1_10 = [inner_list[1] for inner_list in SRMSE_test_10_]
+        RMSE_test_n2_10 = [inner_list[2] for inner_list in SRMSE_test_10_]
+        RMSE_test_n3_10 = [inner_list[3] for inner_list in SRMSE_test_10_]
+
+        RMSE_test_n0_50 = [inner_list[0] for inner_list in SRMSE_test_50_]
+        RMSE_test_n1_50 = [inner_list[1] for inner_list in SRMSE_test_50_]
+        RMSE_test_n2_50 = [inner_list[2] for inner_list in SRMSE_test_50_]
+        RMSE_test_n3_50 = [inner_list[3] for inner_list in SRMSE_test_50_]

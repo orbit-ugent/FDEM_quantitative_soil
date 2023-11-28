@@ -221,44 +221,94 @@ def plot_results(df, actual, predicted, r2_val, rmse_val, scale, title):
     plt.show()
 
 
-def plot_detR2(results, feature_set, target, profile_prefix, em_intype, s_site, indicator):
+def plot_det(results, feature_set, target, profile_prefix, em_intype, s_site, indicator, color_lt, color_ls, color_id):
     # Create subplots
     fig, axes = plt.subplots(nrows=len(feature_set), ncols=1, figsize=(10, 3 * len(feature_set)), sharex=True, sharey=True)
 
     for idx, (feature, scores) in enumerate(results.items()):
         ax = axes[idx]
-        sns.histplot(scores['wat_lt'], ax=ax, color='blue', label='wat_lt', kde=True, stat="density", linewidth=0)
-        sns.histplot(scores['ideal_wat'], ax=ax, color='green', label='ideal_wat', kde=True, stat="density", linewidth=0)
-        sns.histplot(scores['wat_ls'], ax=ax, color='red', label='wat_ls', kde=True, stat="density", linewidth=0)
+        sns.histplot(scores['LT'][indicator], ax=ax, color=color_lt, label='layers together', kde=True, stat="density", linewidth=0)
+        sns.histplot(scores['ID'][indicator], ax=ax, color=color_id, label='ideal', kde=True, stat="density", linewidth=0)
+        sns.histplot(scores['LS'][indicator], ax=ax, color=color_ls, label='layers separate', kde=True, stat="density", linewidth=0)
 
         # Highlight median and mean
-        ax.axvline(x=np.median(scores['wat_lt'][indicator]), color='blue', linestyle='--')
-        ax.axvline(x=np.median(scores['ideal_wat'][indicator]), color='green', linestyle='--')
-        ax.axvline(x=np.median(scores['wat_ls'][indicator]), color='red', linestyle='--')
-        ax.axvline(x=np.mean(scores['wat_lt'][indicator]), color='blue', linestyle=':', alpha=0.7)
-        ax.axvline(x=np.mean(scores['ideal_wat'][indicator]), color='green', linestyle=':', alpha=0.7)
-        ax.axvline(x=np.mean(scores['wat_ls'][indicator]), color='red', linestyle=':', alpha=0.7)
+        ax.axvline(x=np.median(scores['LT'][indicator]), color=color_lt, linestyle='--')
+        ax.axvline(x=np.median(scores['ID'][indicator]), color=color_id, linestyle='--')
+        ax.axvline(x=np.median(scores['LS'][indicator]), color=color_ls, linestyle='--')
+        ax.axvline(x=np.mean(scores['LT'][indicator]), color=color_lt, linestyle=':', alpha=0.7)
+        ax.axvline(x=np.mean(scores['ID'][indicator]), color=color_id, linestyle=':', alpha=0.7)
+        ax.axvline(x=np.mean(scores['LS'][indicator]), color=color_ls, linestyle=':', alpha=0.7)
 
         # Set x-axis limits
-        ax.set_xlim(-10, 1)
-
-        # Set y-axis limits
-        ax.set_ylim(0, 0.5)
+        if indicator == 'R2':
+            ax.set_xlim(-10, 1)
+            ax.set_ylim(0, 0.75)
+        else:
+            ax.set_xlim(0, 0.5)
+            ax.set_ylim(0, 25)
         
-        # Set y-axis label
-        ax.set_ylabel(f'{feature} R2 density')
+        ax.set_ylabel(f'{feature} {indicator} density')
 
         ax.legend()
 
     # Set the overall figure title
-    plt.suptitle(f'Deterministic {target} R2 Score distribution at {profile_prefix}, {em_intype}', fontsize=16)
+    plt.suptitle(f'Deterministic {target} {indicator} distribution at {profile_prefix}, {em_intype}', fontsize=16)
 
     # Adjust layout
     plt.tight_layout(rect=[0, 0.03, 1, 0.98])
 
     # Save the figure with a filename that includes s_site and em_intype
-    filename = f"{target}_R2det_{s_site}_{em_intype}.png"
+    filename = f"{target}_{indicator}det_{s_site}_{em_intype}.png"
     plt.savefig(filename)
 
     # Show the plot
     plt.show()
+
+
+def plot_stoch(Sresults_df, target_set):
+    for target in target_set:
+        # Filter data for the current target
+        target_data = Sresults_df[Sresults_df['Target'] == target]
+
+        # Get unique features
+        features = target_data['Feature'].unique()
+
+        # Create subplots, one for each feature
+        fig, axes = plt.subplots(nrows=len(features), ncols=1, figsize=(10, 3 * len(features)), sharex=True, sharey=True)
+
+        for idx, feature in enumerate(features):
+            # Filter data for the current feature
+            feature_data = target_data[target_data['Feature'] == feature]
+
+            # Get the data for LT, LS, and LSS
+            lt_data = feature_data[feature_data['Model'] == 'LT']['Median R2']
+            ls_data = feature_data[feature_data['Model'] == 'LS']['Median R2']
+            lss_data = feature_data[feature_data['Model'] == 'LSS']['Median R2']
+
+            ax = axes[idx] if len(features) > 1 else axes
+
+            # Plot histograms
+            sns.histplot(lt_data, ax=ax, color='blue', label='LT', kde=True, stat="density", linewidth=0)
+            sns.histplot(ls_data, ax=ax, color='orange', label='LS', kde=True, stat="density", linewidth=0)
+            sns.histplot(lss_data, ax=ax, color='red', label='LSS', kde=True, stat="density", linewidth=0)
+
+            # Highlight median and mean
+            ax.axvline(x=np.median(lt_data), color='blue', linestyle='--')
+            ax.axvline(x=np.median(ls_data), color='orange', linestyle='--')
+            ax.axvline(x=np.median(lss_data), color='red', linestyle='--')
+
+            ax.set_ylabel(f'{feature} R2 density')
+            ax.legend()
+
+        # Set the overall figure title
+        plt.suptitle(f'{target} R2 distribution', fontsize=16)
+
+        # Adjust layout
+        plt.tight_layout(rect=[0, 0.03, 1, 0.98])
+
+        # Save the figure with a filename that includes the target
+        filename = f"{target}_R2_distribution.png"
+        plt.savefig(filename)
+
+        # Show the plot
+        plt.show()
