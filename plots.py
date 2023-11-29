@@ -265,50 +265,43 @@ def plot_det(results, feature_set, target, profile_prefix, em_intype, s_site, in
     plt.show()
 
 
-def plot_stoch(Sresults_df, target_set):
-    for target in target_set:
-        # Filter data for the current target
-        target_data = Sresults_df[Sresults_df['Target'] == target]
+def plot_stoch(results, feature_set, target, profile_prefix, em_intype, s_site, indicator, color_lt, color_ls, color_LS2):
+    # Create subplots
+    fig, axes = plt.subplots(nrows=len(feature_set), ncols=1, figsize=(10, 3 * len(feature_set)), sharex=True, sharey=True)
 
-        # Get unique features
-        features = target_data['Feature'].unique()
+    for idx, (feature, scores) in enumerate(results.items()):
+        ax = axes[idx]
+        sns.histplot(scores['LT'][indicator], ax=ax, color=color_lt, label='LT, n ='+str(scores['LT']['n']), kde=True, stat="density", linewidth=0)
+        sns.histplot(scores['LS2'][indicator], ax=ax, color=color_LS2, label='LS2, n ='+str(scores['LS2']['n']), kde=True, stat="density", linewidth=0)
+        sns.histplot(scores['LS'][indicator], ax=ax, color=color_ls, label='LS, n ='+str(scores['LS']['n']), kde=True, stat="density", linewidth=0)
 
-        # Create subplots, one for each feature
-        fig, axes = plt.subplots(nrows=len(features), ncols=1, figsize=(10, 3 * len(features)), sharex=True, sharey=True)
+        # Highlight median and mean
 
-        for idx, feature in enumerate(features):
-            # Filter data for the current feature
-            feature_data = target_data[target_data['Feature'] == feature]
+        ax.axvline(x=np.median(scores['LT'][indicator]), color=color_lt, linestyle='--')
+        ax.axvline(x=np.median(scores['LS2'][indicator]), color=color_LS2, linestyle='--')
+        ax.axvline(x=np.median(scores['LS'][indicator]), color=color_ls, linestyle='--')
 
-            # Get the data for LT, LS, and LSS
-            lt_data = feature_data[feature_data['Model'] == 'LT']['Median R2']
-            ls_data = feature_data[feature_data['Model'] == 'LS']['Median R2']
-            lss_data = feature_data[feature_data['Model'] == 'LSS']['Median R2']
+        # Set x-axis limits
+        if indicator == 'R2':
+            ax.set_xlim(-1, 1)
+            ax.set_ylim(0, 5)
+        else:
+            ax.set_xlim(0, 0.5)
+            ax.set_ylim(0, 25)
+        
+        ax.set_ylabel(f'{feature} {indicator} density')
 
-            ax = axes[idx] if len(features) > 1 else axes
+        ax.legend()
 
-            # Plot histograms
-            sns.histplot(lt_data, ax=ax, color='blue', label='LT', kde=True, stat="density", linewidth=0)
-            sns.histplot(ls_data, ax=ax, color='orange', label='LS', kde=True, stat="density", linewidth=0)
-            sns.histplot(lss_data, ax=ax, color='red', label='LSS', kde=True, stat="density", linewidth=0)
+    # Set the overall figure title
+    plt.suptitle(f'Stochastic {target} {indicator} distribution at {profile_prefix}, {em_intype}', fontsize=16)
 
-            # Highlight median and mean
-            ax.axvline(x=np.median(lt_data), color='blue', linestyle='--')
-            ax.axvline(x=np.median(ls_data), color='orange', linestyle='--')
-            ax.axvline(x=np.median(lss_data), color='red', linestyle='--')
+    # Adjust layout
+    plt.tight_layout(rect=[0, 0.03, 1, 0.98])
 
-            ax.set_ylabel(f'{feature} R2 density')
-            ax.legend()
+    # Save the figure with a filename that includes s_site and em_intype
+    filename = f"{target}_{indicator}stoch_{s_site}_{em_intype}.png"
+    plt.savefig(filename)
 
-        # Set the overall figure title
-        plt.suptitle(f'{target} R2 distribution', fontsize=16)
-
-        # Adjust layout
-        plt.tight_layout(rect=[0, 0.03, 1, 0.98])
-
-        # Save the figure with a filename that includes the target
-        filename = f"{target}_R2_distribution.png"
-        plt.savefig(filename)
-
-        # Show the plot
-        plt.show()
+    # Show the plot
+    plt.show()

@@ -182,3 +182,34 @@ error_criteria_selection='R2'
         RMSE_test_n1_50 = [inner_list[1] for inner_list in SRMSE_test_50_]
         RMSE_test_n2_50 = [inner_list[2] for inner_list in SRMSE_test_50_]
         RMSE_test_n3_50 = [inner_list[3] for inner_list in SRMSE_test_50_]
+
+##################
+
+        if criteria == 'RMSE':
+
+            SRMSE_LT = [SRMSE_test_LT0, SRMSE_test_LT1, SRMSE_test_LT2, SRMSE_test_LT3]
+            SRMSE_meadian_LT = [np.median(sublist) for sublist in SRMSE_LT]
+            best_n_LT = SRMSE_meadian_LT.index(np.max(SRMSE_meadian_LT))
+            SRMSE_test_LTb = SRMSE_LT[best_n_LT]
+        
+            SR2_LT = [SR2_test_LT0, SR2_test_LT1, SR2_test_LT2, SR2_test_LT3]
+            SR2_meadian_LT = [np.median(sublist) for sublist in SR2_LT]
+            SR2_test_LTb = SR2_LT[best_n_LT]
+
+            SRMSE_LS = [SRMSE_test_LS0, SRMSE_test_LS1, SRMSE_test_LS2, SRMSE_test_LS3]
+            SRMSE_meadian_LS = [np.median(sublist) for sublist in SRMSE_LS]
+            best_n_LS = SRMSE_meadian_LS.index(np.max(SRMSE_meadian_LS))
+            SRMSE_test_LSb = SRMSE_LS[best_n_LS]
+
+            SR2_LS = [SR2_test_LS0, SR2_test_LS1, SR2_test_LS2, SR2_test_LS3]
+            SR2_meadian_LS = [np.median(sublist) for sublist in SR2_LS]
+            SR2_test_LSb = SR2_LS[best_n_LS]
+
+            SRMSE_LS2 = SR2_test_LS2b
+            SRMSE_meadian_LS2 = [np.median(sublist) for sublist in SRMSE_LS2]
+            best_n_LS2 = SRMSE_meadian_LS2.index(np.max(SRMSE_meadian_LS2))
+            SRMSE_test_LS2b = SRMSE_LS2[best_n_LS2]
+
+            SR2_LS2 = SRMSE_test_LS2b
+            SR2_meadian_LS2 = [np.median(sublist) for sublist in SR2_LS2]
+            SR2_test_LS2b = SR2_LS2[best_n_LS2]
