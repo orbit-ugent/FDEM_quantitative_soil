@@ -68,9 +68,6 @@ def plot_det(results, feature_set, target, profile_prefix, em_intype, cal, s_sit
         ax.axvline(x=np.median(scores['LT'][indicator]), color=color_lt, linestyle='--')
         ax.axvline(x=np.median(scores['ID'][indicator]), color=color_id, linestyle='--')
         ax.axvline(x=np.median(scores['LS'][indicator]), color=color_ls, linestyle='--')
-        ax.axvline(x=np.mean(scores['LT'][indicator]), color=color_lt, linestyle=':', alpha=0.7)
-        ax.axvline(x=np.mean(scores['ID'][indicator]), color=color_id, linestyle=':', alpha=0.7)
-        ax.axvline(x=np.mean(scores['LS'][indicator]), color=color_ls, linestyle=':', alpha=0.7)
 
         # Set x-axis limits
         if indicator == 'R2':
@@ -91,8 +88,10 @@ def plot_det(results, feature_set, target, profile_prefix, em_intype, cal, s_sit
     plt.tight_layout(rect=[0, 0.03, 1, 0.98])
 
     # Save the figure with a filename that includes s_site and em_intype
-    filename = f"{target}_{indicator}det_{s_site}_{cal}_{em_intype}.png"
-    plt.savefig(filename)
+    file_name = f"{target}_{indicator}det_{s_site}_{cal}_{em_intype}.pdf"
+    folder_path = 'output_images/'
+
+    plt.savefig(folder_path + file_name)
 
     # Show the plot
     plt.show()
@@ -133,8 +132,10 @@ def plot_stoch(results, feature_set, target, profile_prefix, em_intype, cal, s_s
     plt.tight_layout(rect=[0, 0.03, 1, 0.98])
 
     # Save the figure with a filename that includes s_site and em_intype
-    filename = f"{target}_{indicator}stoch_{s_site}_{cal}_{em_intype}.png"
-    plt.savefig(filename)
-
+    file_name = f"{target}_{indicator}stoch_{s_site}_{cal}_{em_intype}.pdf"
+    folder_path = 'output_images/'
+    plt.savefig(folder_path + file_name)
     # Show the plot
     plt.show()
+
+    return file_name
