@@ -139,3 +139,63 @@ def plot_stoch(results, feature_set, target, profile_prefix, em_intype, cal, s_s
     plt.show()
 
     return file_name
+
+
+def plot_stoch_implementation(df, Y, Ypred, r2, profile_prefix):
+    fig, axes = plt.subplots(figsize=[7, 7])
+    ss = 200
+
+    label_for_depth_50_added = False
+    label_for_depth_10_added = False
+
+    axes.set_xlim(0, 60)
+    axes.set_ylim(0, 60)
+
+    # Plot a line and label for R2
+    axes.plot([0, 60], [0, 60], color='black', label=f'R2 = {r2}')
+    
+    axes.set_ylabel(f'Water [%] predicted', fontsize=20)
+    axes.set_xlabel(f'Water [%] observed in field', fontsize=20)
+
+    for i, (x, y) in enumerate(zip(Y, Ypred)):
+        if df['depth'].iloc[i] == 50:
+            marker_style = 'D'
+            c = 'orange'
+            if not label_for_depth_50_added:
+                axes.scatter(x*100, y*100, s=ss, alpha=0.8, color=c, marker=marker_style, label='Layer 50 cm')
+                label_for_depth_50_added = True
+            else:
+                axes.scatter(x*100, y*100, s=ss, alpha=0.8, color=c, marker=marker_style)
+        else:
+            marker_style = 'o'
+            c = 'blue'
+            if not label_for_depth_10_added:
+                axes.scatter(x*100, y*100, s=ss, alpha=0.8, color=c, marker=marker_style, label='Layer 10 cm')
+                label_for_depth_10_added = True
+            else:
+                axes.scatter(x*100, y*100, s=ss, alpha=0.8, color=c, marker=marker_style)
+
+    # Add the legend after all plotting is done
+    axes.legend(fontsize=14)
+
+    plt.suptitle(f'{profile_prefix}', fontsize=24)
+    axes.tick_params(axis='both', which='major', labelsize=14)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.99])
+
+    axes.grid(True)
+
+    # Adjust layout
+    plt.tight_layout(rect=[0, 0.03, 1, 0.99])
+
+    # Save the figure with a filename that includes profile_prefix
+    file_name_pdf = f"Stoch_VWC_{profile_prefix}.pdf"
+    file_name_png = f"Stoch_VWC_{profile_prefix}.png"
+
+    folder_path = 'output_images/'
+    plt.savefig(folder_path + file_name_pdf)
+    plt.savefig(folder_path + file_name_png)
+
+    # Show the plot
+    plt.show()
+
+    return file_name
