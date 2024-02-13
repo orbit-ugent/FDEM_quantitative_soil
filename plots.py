@@ -197,5 +197,3 @@ def plot_stoch_implementation(df, Y, Ypred, r2, profile_prefix):
 
     # Show the plot
     plt.show()
-
-    return file_name
