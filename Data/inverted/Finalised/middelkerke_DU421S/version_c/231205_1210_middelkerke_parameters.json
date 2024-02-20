@@ -1,0 +1,18 @@
+	"input file + path": "infile.csv",
+
+	"instrument": "Dualem-421S",
+	"instrument mode": "HCP",
+	"instrument height (m)": 0.165,
+	"configurations not used in inversion": "['HCP4QP' 'PRP4QP']",
+
+	"forward model": "FSeq",
+	"optimisation method":"ROPE",
+	"regularisation": "l1",
+	"alpha parameter": "0.0",
+
+	"reference EC profile":"100",
+	 "constrained inversion":
+	"custom interface boundaries": "[0.3, 0.6, 1.0, 1.5, 2.0, 'end']"
+
+	"custom inversion constraints (bnds)": "[(20, 80), (50, 380), (76, 820), (100, 1000), (150, 1000), (188, 900)]" 
+

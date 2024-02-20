@@ -1,0 +1,63 @@
+	"input file + path": "data\calibrated\proefhoeve_21HS_transect_calibrated_rECa.csv",
+
+	"instrument": "Dualem-21HS",
+	"instrument mode": "HCP",
+	"instrument height (m)": 0.165,
+	"configurations not used in inversion": "['HCPHQP' 'PRPHQP']",
+
+	"forward model": "FSeq",
+	"optimisation method":"CG",
+	"regularisation": "l2",
+	"alpha parameter": "0.8",
+
+	"reference EC profile":"11",
+	 "constrained inversion":
+	"automated inversion constraints (bnds)": "[[  7.  42.]
+ [ 20.  87.]
+ [ 25. 146.]
+ [ 29. 230.]
+ [ 33. 272.]
+ [ 40. 345.]
+ [ 45. 337.]
+ [ 54. 352.]
+ [ 70. 368.]
+ [ 86. 367.]
+ [  4. 360.]
+ [ 30. 346.]
+ [ 58. 351.]
+ [ 77. 319.]
+ [ 95. 285.]
+ [ 95. 270.]
+ [ 84. 228.]
+ [ 77. 223.]
+ [ 73. 190.]
+ [ 70. 169.]
+ [ 62. 143.]
+ [ 58. 131.]
+ [ 55. 112.]
+ [ 52.  97.]
+ [ 47.  89.]
+ [ 42.  84.]
+ [ 40.  76.]
+ [ 37.  70.]
+ [ 35.  68.]
+ [ 34.  61.]
+ [ 32.  57.]
+ [ 30.  56.]
+ [ 29.  52.]
+ [ 27.  52.]
+ [ 25.  51.]
+ [ 24.  49.]
+ [ 23.  48.]
+ [ 23.  46.]
+ [ 22.  49.]
+ [ 21.  45.]
+ [ 21.  45.]
+ [ 20.  47.]
+ [ 19.  45.]
+ [ 19.  46.]
+ [ 18.  46.]
+ [ 18.  47.]
+ [ 18.  46.]
+ [ 18.  46.]]"
+

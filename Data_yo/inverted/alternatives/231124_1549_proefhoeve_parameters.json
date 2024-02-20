@@ -1,0 +1,11 @@
+	"instrument": "Dualem-21HS",
+	"instrument mode": "HCP",
+	"instrument height (m)": 0.165,
+	"forward model": "FSeq",
+	"optimisation method":"ROPE",
+	"regularisation": "l1",
+	"reference EC profile":"11",
+	"custom interface boundaries": [0.3, 0.6, 1.0, 2.0, 'end']
+
+	"inversion constraints (bnds)": [(91.49441508540664, 276.2180849145901), (58.103198644380974, 128.5068013556188), (10, 334.8560357253103), (10, 269.4437845307027), (5.298353094297056, 58.355896905710374)]
+

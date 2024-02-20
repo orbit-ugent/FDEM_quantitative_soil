@@ -4,12 +4,17 @@
 # Packages ------------------------
 import warnings
 import os
+from io import StringIO
+import subprocess
+import tempfile
+import shutil
 
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
 from scipy.spatial import cKDTree
+
 # ---------------------------------
 
 def determine_epsg_from_utm_zone(zone_number, hemisphere='N'):
@@ -239,3 +244,135 @@ def get_coincident(df_in, df_query):
         axis=1 #concatenate along the correct axis (i.e., along the columns)
         )
     return df_coincident
+
+
+def nn_interpolate(df_x, df_y, df_z, 
+                   nx, ny, 
+                   tempdir=True, 
+                   tempdir_name=None,
+                   df_out = False
+                   ):
+    '''
+    NN Interpolation with nnbathy
+    requires nnbathy.exe
+
+    ref: https://github.com/sakov/nn-c
+    Usage: nnbathy -i <XYZ file>
+                -o <XY file> | -n <nx>x<ny> [-c|-s] [-z <zoom>]
+                [-x <xmin xmax>] [-xmin <xmin>] [-xmax <xmax>]
+                [-y <ymin ymax>] [-ymin <ymin>] [-ymax <ymax>]
+                [-v|-T <vertex id>|-V]
+                [-D [<nx>x<ny>]]
+                [-L <dist>]
+                [-N]
+                [-P alg={l|nn|ns}]
+                [-W <min weight>]
+                [-% [npoints]]
+    Options:
+    -c               -- scale internally so that the enclosing minimal ellipse
+                        turns into a circle (this produces results invariant to
+                        affine transformations)
+    -i <XYZ file>    -- three-column file with points to interpolate from
+                        (use "-i stdin" or "-i -" for standard input)
+    -n <nx>x<ny>     -- generate <nx>x<ny> output rectangular grid
+    -o <XY file>     -- two-column file with points to interpolate in
+                        (use "-o stdin" or "-o -" for standard input)
+    -s               -- scale internally so that Xmax - Xmin = Ymax - Ymin
+    -x <xmin> <xmax> -- set Xmin and Xmax for the output grid
+    -xmin <xmin>     -- set Xmin for the output grid
+    -xmax <xmax>     -- set Xmin for the output grid
+    -y <ymin> <ymax> -- set Ymin and Ymax for the output grid
+    -ymin <ymin>     -- set Ymin for the output grid
+    -ymax <ymax>     -- set Ymin for the output grid
+    -v               -- verbose / version
+    -z <zoom>        -- zoom in (if <zoom> < 1) or out (<zoom> > 1) (activated
+                        only when used in conjunction with -n)
+    -D [<nx>x<ny>]   -- thin input data by averaging X, Y and 
+    Z values within
+                        every cell of the rectangular <nx>x<ny> grid (size
+                        optional with -n)
+    -L <dist>        -- thin input data by averaging X, Y and Z values within
+                        clusters of consequitive input points such that the
+                        sum of distances between points within each cluster
+                        does not exceed the specified maximum value
+    -N               -- do not interpolate, only pre-process
+    -P alg=<l|nn|ns> -- use the following algorithm:
+                            l -- linear interpolation
+                            nn -- Sibson interpolation (default)
+                            ns -- Non-Sibsonian interpolation
+    -T <vertex id>   -- verbose; in weights output print weights associated
+                        with this vertex only
+    -V               -- very verbose / version
+    -W <min weight>  -- restricts extrapolation by assigning minimal allowed
+                        weight for a vertex (normally "-1" or so; lower
+                        values correspond to lower reliability; "0" means
+                        no extrapolation)
+    -% [npoints]     -- print percent of the work done to standard error;
+                        npoints -- total number of points to be done (optional
+                        with -n)
+    Description:
+    `nnbathy' interpolates scalar 2D data in specified points using Natural
+    Neighbours interpolation. The interpolated values are written to standard
+    output.
+    '''
+    # ------------------------------------------------------------------------ #
+
+    '''
+    df_x: pandas DataFrame (column) with x coordinates (longitude, meters) 
+    df_y: pandas DataFrame (column) with y coordinates (latitude, meters) 
+    df_z: pandas DataFrame (column) with values to be interpolated 
+    use_custom_tempdir: Boolean to decide whether to use a custom temporary directory
+    custom_tempdir_name: Optional custom name for the temporary directory
+    '''
+    xyzfile = pd.concat([df_x, df_y, df_z], axis=1)
+    
+    if tempdir:
+        temp_dir = tempdir_name or "temp_nn"
+        os.makedirs(temp_dir, exist_ok=True)
+        input_temp_file_path = os.path.join(temp_dir, "input_temp.txt")
+        xyzfile.to_csv(input_temp_file_path, header=None, sep=' ', index=False)
+    else:
+        input_temp_file = tempfile.NamedTemporaryFile(mode='w+', delete=True)
+        #output_temp_file = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        input_temp_file_path = input_temp_file.name
+        xyzfile.to_csv(input_temp_file_path, header=None, sep=' ', index=False)
+        input_temp_file.flush()
+    
+    output_temp_file_path = "output_temp.txt"
+
+    grid_size = f"{ny}x{nx}" #latitude x longitude as string
+
+    # Execute nnbathy with input as temporary file
+    result = subprocess.Popen(['nnbathy.exe',
+                               '-i', input_temp_file_path,
+                               '-n', grid_size,
+                               '-o', output_temp_file_path,
+                               '-s'],
+                              stdout=subprocess.PIPE, 
+                              stderr=subprocess.PIPE)
+    stdout, stderr = result.communicate()
+    s = str(stdout, 'utf-8')
+    data = StringIO(s)
+
+    if result.returncode != 0:
+        print(f"Error in nnbathy: {stderr}")
+        return None
+
+    # Read the output data
+    interpolated_data = pd.read_csv(data, delimiter=' ', header=None)
+    interpolated_data = interpolated_data.rename(columns={0: 'lat', 1: 'lon', 2: 'val'})
+
+    #interpolated_data_sorted = interpolated_data.sort_values(by=['lon', 'lat'])
+    grid = interpolated_data['val'].values.reshape(nx, ny)
+    
+    # Clean up temporary files and directories
+    if tempdir:
+        shutil.rmtree(temp_dir)
+    else:
+        input_temp_file.close()
+        #output_temp_file.close()
+
+    if df_out:
+        return grid, interpolated_data
+    else: 
+        return grid

@@ -64,28 +64,141 @@ def clip_profiles_to_max_depth(df, max_depth, surf_depth):
 # Plot a single profile with or without comparative profile data
 def plot_profile(profile_df, profile_id, dataset_name, 
                  compare=False, compare_df=None, compare_name=None, subs=False,
-                 xlims=None, plot_title =None, save_plot = False, plot_name = None):
+                 xlims=None, plot_title =None, save_plot = False, plot_name = None,
+                 block=False, c_block=True
+                 ):
     """
     Plot profile data, without or with comparative profile data
 
     Parameters:
-    - original_df: DataFrame containing the original profile data.
+    - profile_df: DataFrame containing the original profile data.
     - profile_id: The ID of the profile to be plotted.
     - dataset_name: string with dataset column name .
+    - compare: bool to set if profiles will be compared or not
     - compare_df: DataFrame containing the smoothed profile data. (optional)
     - compare_name: string with compare dataset column name. (optional)
+    - subs: bool to plot with subplots (True) or not (False)
+    - xlims = custom x axis limits
+    - plot_title: string with custom plot title if desired
+    - save_plot: bool to save or not
+    - plot_name: string with custom filename for saving if desired
+    - block: if True profile data will be plotted blocky (good for geological
+            layers).
     """
     profile_data = profile_df[profile_df['ID'] == profile_id]
+    # check if depths are negative or positive
+    pos_depth = np.any(profile_data['z'].values > 0)
+
+    # sort based on depth values (relative to + or - depths)
+    if pos_depth:
+        profile_data = profile_data.sort_values(by=['z'], ascending=True)
+    else:
+        profile_data = profile_data.sort_values(by=['z'], ascending=False)
+
     profile_label = str(profile_id)
     if '.0' in profile_label:
         profile_label = profile_label.split('.')[0]
-        
+
+    # depth and measurement values to reuse as np arrays
+    measurements = profile_data[dataset_name].values
+    depths = profile_data['z'].values
+
+    if block:
+        modified_measurements = []
+        modified_depths = [] 
+        # print(depths)
+        # print(measurements)
+        # Check if 0 is already in the depths array
+        zero_included = 0 in depths
+
+        # If 0 is not in the depths array, insert 0 at the beginning
+        if not zero_included:
+            depths = np.insert(depths, 0, 0)
+            measurements = np.insert(measurements, 0, measurements[0])  # Use the first measurement value
+
+        # Add the first depth and its measurement without duplication
+        #c_modified_measurements.append(c_measurements[0])
+        modified_depths.append(depths[0])
+
+        # Process each intermediate measurement and corresponding depth
+        for i in range(1, len(measurements)):
+            modified_measurements.extend([measurements[i], measurements[i]])
+            if i < len(measurements) - 1:     
+                modified_depths.extend([depths[i], depths[i] - 0.01])
+            else:
+                # For the last measurement, add its depth without duplication
+                modified_depths.append(depths[i])
+
+        # Find the index of the deepest depth (max absolute value in case of negative depths)
+        deepest_depth_index = np.argmax(np.abs(modified_depths))
+        deepest = np.abs(modified_depths[deepest_depth_index]) + 0.5
+        if pos_depth == False:
+            deepest = -deepest
+
+        # Append the deepest depth and its associated measurement
+        modified_depths.append(deepest)
+        modified_measurements.append(measurements[-1])
+
+        # Convert to numpy arrays for consistency
+        modified_measurements = np.array(modified_measurements)
+        modified_depths = np.array(modified_depths)
+
+        # print(f'mod ER depths = {modified_depths}')
+        # print(f'mod ER meas = {modified_measurements}')
+
     if compare:
             comparative_data = compare_df[compare_df['ID'] == profile_id]
+            if pos_depth:
+                comparative_data = comparative_data.sort_values(by=['z'])
+            else:
+                comparative_data = comparative_data.sort_values(by=['z'],
+                                                                ascending = False)
+            # print(comparative_data.sort_values(by=['z']))
+            c_measurements = comparative_data[compare_name].values
+            c_depths = comparative_data['z'].values
+            c_pos_depth = np.any(c_depths > 0)
+
+            if block and c_block:
+                c_modified_measurements = []
+                c_modified_depths = [] 
+                # print(c_depths)
+                # print(c_measurements)
+                # Check if 0 is already in the depths array
+                zero_included = 0 in c_depths
+
+                # If 0 is not in the depths array, insert 0 at the beginning
+                if not zero_included:
+                    c_depths = np.insert(c_depths, 0, 0)
+                    c_measurements = np.insert(c_measurements, 0, c_measurements[0])  # Use the first measurement value
+
+                # Add the first depth and its measurement without duplication
+                #c_modified_measurements.append(c_measurements[0])
+                c_modified_depths.append(c_depths[0])
+
+                # Process each intermediate measurement and corresponding depth
+                for i in range(1, len(c_measurements)):
+                    c_modified_measurements.extend([c_measurements[i], c_measurements[i]])
+                    if i < len(c_measurements) - 1:     
+                        c_modified_depths.extend([c_depths[i], c_depths[i] - 0.01])
+                    else:
+                        # For the last measurement, add its depth without duplication
+                        c_modified_depths.append(c_depths[i])
+
+                # Append the deepest depth and its associated measurement
+                c_modified_depths.append(deepest)
+                c_modified_measurements.append(c_measurements[-1])
+
+                # Convert to numpy arrays for consistency
+                c_modified_measurements = np.array(c_modified_measurements)
+                c_modified_depths = np.array(c_modified_depths)
+
             if subs:
                 fig, axs = plt.subplots(2, 1, figsize=(16, 8))
                 # Plot the original data
-                axs[0].plot(profile_data[dataset_name], profile_data['z'], label=dataset_name)
+                if block:    
+                    axs[0].plot(c_modified_measurements, c_modified_depths, label=f'Profile {profile_id}',color='red')
+                else:
+                    axs[0].plot(c_measurements, c_depths, label=dataset_name)
                 axs[0].set_title(f'Profile ID {profile_label} - Original Data')
                 #axs[0].invert_yaxis()  # Invert y-axis to show depth correctly
                 if xlims:
@@ -96,8 +209,8 @@ def plot_profile(profile_df, profile_id, dataset_name,
                 axs[0].legend()
 
                 # Plot the comparative data
-                axs[1].plot( comparative_data[compare_name], comparative_data['z'], label=compare_name, color='red')
-                axs[1].plot( comparative_data[compare_name], '.', color='red', markersize=10)
+                axs[1].plot(c_measurements, c_depths, label=compare_name, color='red')
+                axs[1].plot(c_measurements, '.', color='red', markersize=10)
                 axs[1].set_title(f'Profile ID {profile_label} - {compare_name}')
                 #axs[1].invert_yaxis()  # Invert y-axis to show depth correctly
                 if xlims:
@@ -109,8 +222,11 @@ def plot_profile(profile_df, profile_id, dataset_name,
             else:
                 fig, axs = plt.subplots(1, 1, figsize=(16, 8))
                 # Plot the original data
-                axs.plot(profile_data[dataset_name], profile_data['z'], label=dataset_name, color='blue')
-                axs.plot( profile_data[dataset_name], profile_data['z'],'.', color='blue', markersize=10)
+                if block:    
+                    axs.plot(modified_measurements, modified_depths, label=f'Profile {profile_id}')
+                else:
+                    axs.plot(measurements, depths, label=dataset_name, color='blue')
+                    axs.plot(measurements, depths,'.', color='blue', markersize=10)
                 axs.set_title(f'Profile ID {profile_label} - Original Data')
                 #axs[0].invert_yaxis()  # Invert y-axis to show depth correctly
                 if xlims:
@@ -121,8 +237,11 @@ def plot_profile(profile_df, profile_id, dataset_name,
                 axs.legend()
 
                 # Plot the comparative data
-                axs.plot( comparative_data[compare_name], comparative_data['z'], label=compare_name, color='red')
-                axs.plot( comparative_data[compare_name], comparative_data['z'],'.', color='red', markersize=10)
+                if block:    
+                    axs.plot(c_modified_measurements, c_modified_depths, label=f'Profile {profile_id}',color='red')
+                else:
+                    axs.plot(c_measurements, c_depths, label=compare_name, color='red')
+                    axs.plot(c_measurements, c_depths, '.', color='red', markersize=10)
                 axs.set_title(f'Profile ID {profile_label} - {compare_name}')
                 #axs[1].invert_yaxis()  # Invert y-axis to show depth correctly
                 if xlims:
@@ -134,7 +253,10 @@ def plot_profile(profile_df, profile_id, dataset_name,
     else:
             # Plot the original data
             fig, axs = plt.subplots(1, 1, figsize=(8, 8))
-            axs.plot(profile_data[dataset_name], profile_data['z'], label=dataset_name)
+            if block:    
+                axs.plot(modified_measurements, modified_depths, label=f'Profile {profile_id}')
+            else:
+                axs.plot(measurements, depths, label=dataset_name)
             axs.set_title(f'Profile ID {profile_label}')
             if xlims:
                 axs.set_xlim(xlims)
@@ -142,7 +264,7 @@ def plot_profile(profile_df, profile_id, dataset_name,
             axs.set_ylabel('Depth [m]')
             axs.grid(True)
             axs.legend()
-
+    #print(c_modified_depths)
     if plot_title:
         fig.suptitle(plot_title, fontsize=14)
 
@@ -154,12 +276,13 @@ def plot_profile(profile_df, profile_id, dataset_name,
             filename = f'Profile_ID_{profile_label}.pdf'
         plt.savefig(filename)
         return filename
-    plt.show()
+    # plt.show()
 
 
 # Plot two sets of profiles for visual comparison
 def plot_combined_profiles(reference_df, comparison_df, 
-                           reference_name, compare_name = None
+                           reference_name, compare_name = None,
+                           block=False
                            ):
     """
     Plot comparative line plots between the original selected profile data and the smoothed profiles.
@@ -183,7 +306,24 @@ def plot_combined_profiles(reference_df, comparison_df,
     # Plot the original data for all profiles
     for profile_id in reference_df['ID'].unique():
         profile_data = reference_df[reference_df['ID'] == profile_id]
-        axs[0].plot(profile_data[reference_name], profile_data['z'], label=f'Profile {profile_id}')
+        if block:
+            measurements = profile_data[reference_name]
+            depths = profile_data['z']
+            modified_measurements = []
+            modified_depths = []
+            for i in range(len(profile_data)):
+                modified_measurements.extend([measurements[i], measurements[i]])
+                # Append the corresponding depth and a slightly increased depth
+                if i == 0:
+                    modified_depths.append(0)  # Starting from 0 depth for the first measurement
+                modified_depths.extend([depths[i], depths[i] + 0.01])
+
+            # The last measurement should be plotted only once at the maximum depth
+            modified_measurements.pop()  # Remove the last duplicate measurement
+            modified_depths.append(max(depths) + 0.01)  # Append the maximum depth
+            axs[0].plot(modified_measurements, modified_depths, label=f'Profile {profile_id}')
+        else:
+            axs[0].plot(profile_data[reference_name], profile_data['z'], label=f'Profile {profile_id}')
         
     axs[0].set_title('Reference Profiles')
     axs[0].set_xlabel(reference_name)
@@ -288,7 +428,8 @@ def check_uniformity_and_interpolate(df, profile_id_col, depth_col, *data_cols, 
 
 # Merging profile layers for forward and inverse models
 def merge_layers(df, new_interfaces, dataset,
-                 depth_col='z', x_col='easting', y_col='northing', id_col='ID'):
+                 depth_col='z', x_col='easting', y_col='northing', id_col='ID',
+                 med=True):
     """
     Merges profile layers in a DataFrame based on specified depth interfaces 
     and calculates mean values for a given dataset column. 
@@ -325,20 +466,23 @@ def merge_layers(df, new_interfaces, dataset,
 
         start_depth = 0
         for end_depth in new_depths:
-            layers_in_range = group_df[(group_df['z'] > start_depth) & (group_df['z'] <= end_depth)]
-            
-            mean_EC = layers_in_range[dataset].mean()
-
+            layers_in_range = group_df[(group_df['z'] > start_depth+0.1) & (group_df['z'] <= end_depth+0.11)]
+            # print(layers_in_range)
+            if med:
+                merged_EC = layers_in_range[dataset].median()
+            else:
+                merged_EC = layers_in_range[dataset].mean()
+            # print(merged_EC)
             x_value = layers_in_range[x_col].iloc[0] if not layers_in_range.empty else np.nan
             y_value = layers_in_range[y_col].iloc[0] if not layers_in_range.empty else np.nan
             pos_value = layers_in_range[id_col].iloc[0] if not layers_in_range.empty else np.nan
 
             merged_data[x_col].append(x_value)
             merged_data[y_col].append(y_value)
-            merged_data[dataset].append(mean_EC)
+            merged_data[dataset].append(merged_EC)
             merged_data[id_col].append(pos_value)
 
-            start_depth = end_depth
+            start_depth = end_depth+0.01
 
         # Create DataFrame and sort it by 'z' in descending order of absolute values
         merged_group_df = pd.DataFrame(merged_data)

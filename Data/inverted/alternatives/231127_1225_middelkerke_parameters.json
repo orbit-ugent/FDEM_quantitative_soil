@@ -1,0 +1,11 @@
+	"instrument": "Dualem-421S",
+	"instrument mode": "HCP",
+	"instrument height (m)": 0.165,
+	"forward model": "FSlin",
+	"optimisation method":"ROPE",
+	"regularisation": "l1",
+	"reference EC profile":"15",
+	"custom interface boundaries": [0.3, 0.6, 1.0, 2.0, 'end']
+
+	"inversion constraints (bnds)": [(22.877321099166068, 83.29767890083818), (50.6150000000018, 381.79940055200086), (75.5445000000012, 819.2347232074701), (124.346000000001, 1108.1655185859772), (188.4700000000009, 1025.8167426267287)]
+
