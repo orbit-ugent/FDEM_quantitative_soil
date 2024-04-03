@@ -1,0 +1,56 @@
+%load_ext autoreload
+
+# Packages -----------------
+import os
+import sys
+import shutil
+import warnings
+import datetime
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+from scipy import constants
+from matplotlib.path import Path
+
+# Get notebook and parent dir
+current_dir = os.path.dirname(os.path.abspath('__file__')) 
+parent_dir = os.path.dirname(current_dir)
+
+# Set path to pedophysics module 
+pedophysics_code_path = os.path.join(parent_dir)
+sys.path.insert(0, pedophysics_code_path)
+
+import pedophysics
+from pedophysics import predict, Soil
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+from scipy.optimize import root
+from scipy.stats import spearmanr
+from scipy.optimize import minimize, differential_evolution
+from IPython.display import clear_output
+from utils.spatial_utils import utm_to_epsg, get_coincident
+!pip install pymel
+import pymel
+from FDEM import Initialize
+from utils.profile_utils import merge_layers, plot_profile, check_uniformity_and_interpolate
+
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.model_selection import train_test_split
+from scipy.stats import pearsonr
+from PyPDF2 import PdfMerger
+from emagpy import Problem
+
+# Electromagnetic induction data inversion package
+from plots import *
+from PM import *
+%matplotlib inline
+
+pd.set_option('display.max_columns', None)
+pd.options.future.infer_string = True
+
+sys.path.insert(0,'../src/') # this add the emagpy/src directory to the PATH
+
+
+

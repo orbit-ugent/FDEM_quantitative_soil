@@ -197,3 +197,73 @@ def plot_stoch_implementation(df, Y, Ypred, r2, profile_prefix):
 
     # Show the plot
     plt.show()
+
+
+def plot_bars(uncal_LIN_M, cal_LIN_M, cal_rECa_M, uncal_LIN_P, cal_LIN_P, cal_rECa_P, target_set, approaches):
+    # Setup the subplots
+    fig, axes = plt.subplots(2, len(approaches), figsize=(15, 10), sharey=True, sharex=True)
+
+    for idx, approach in enumerate(approaches):
+        bars_data = {
+            'Uncalibrated LIN': {'P': uncal_LIN_P, 'M': uncal_LIN_M},
+            'Calibrated LIN': {'P': cal_LIN_P, 'M': cal_LIN_M},
+            'Calibrated rECa': {'P': cal_rECa_P, 'M': cal_rECa_M}
+        }
+
+        lab = np.arange(len(target_set))  # the label locations
+        width = 0.25  # the width of the bars
+        multiplier = 0
+
+        colors = {'Uncalibrated LIN': 'grey', 'Calibrated LIN': 'orange', 'Calibrated rECa': 'blue'}
+
+        for i, soil_type in enumerate(['P', 'M']):
+            ax = axes[i, idx]
+
+            for attribute, data in bars_data.items():
+                offset = width * multiplier
+
+                if i == 0:
+                    rects = ax.bar(lab + offset, data[soil_type][approach][:5], width, label=attribute, color=colors[attribute])
+                else: 
+                    rects = ax.bar(lab + offset, data[soil_type][approach][:5], width, color=colors[attribute])
+                    
+                # Adjust bar labels for readability and apply inclination
+                for rect in rects:
+                    height = rect.get_height()
+                    ax.annotate(f'{height:.2f}',
+                                xy=(rect.get_x() + rect.get_width() / 2, height),
+                                xytext=(0, 3),  # 3 points vertical offset
+                                textcoords="offset points",
+                                ha='center', va='bottom',
+                                rotation=60)  # Rotate the annotations for readability
+                multiplier += 1
+
+            # Add some text for labels, title and custom x-axis tick labels, etc.
+            if idx == 0:
+                ax.set_ylabel('${R^2}$', fontweight='bold', fontsize=14)
+                ax.legend(loc='upper left', ncol=1)
+
+            ax.set_xticks(lab + width / 2)
+            ax.set_xticklabels(target_set, rotation=60, fontsize=14)
+            ax.set_ylim(-0.25, 0.8)  # Adjust as per your data's range
+
+            multiplier = 0
+
+    # Adding labels to the plot
+    fig.text(0.99, 0.9, 'Proefhoeve', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
+    fig.text(0.99, 0.45, 'Middlekerke', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
+
+    fig.text(0.20, 0.95, 'LS',  fontweight='bold', fontsize=14)
+    fig.text(0.50, 0.95, 'LT',  fontweight='bold', fontsize=14)
+    fig.text(0.85, 0.95, 'LT2', fontweight='bold', fontsize=14)
+
+    plt.tight_layout()
+
+    folder_path = 'output_images/'
+    file_name_png = f"S_Results_bars.png"
+    file_name_pdf = f"S_Results_bars.pdf"
+
+    plt.savefig(folder_path + file_name_pdf, bbox_inches='tight')  # Adjusted bbox_inches
+    plt.savefig(folder_path + file_name_png, bbox_inches='tight')  # Adjusted bbox_inches
+
+    plt.show()
