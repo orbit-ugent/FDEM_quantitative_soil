@@ -1,4 +1,4 @@
-nb_electrode,distance,easting,northing
+ID,distance,easting,northing
 1,0,41665.091,204320.014
 2,0.5,41665.283,204319.552
 3,1,41665.475,204319.091
