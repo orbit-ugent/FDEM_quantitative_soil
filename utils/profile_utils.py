@@ -54,9 +54,9 @@ def clip_profiles_to_max_depth(df, max_depth, surf_depth):
     Returns:
     - DataFrame with data beyond the max_depth excluded.
     """
-    # Filter out rows where the 'z' column is less than the maximum depth
-    clipped_df = df[df['z'] >= max_depth].copy()
-    clipped_df = clipped_df[clipped_df['z'] <= surf_depth].copy()
+    # Filter out rows where the 'Z' column is less than the maximum depth
+    clipped_df = df[df['Z'] >= max_depth].copy()
+    clipped_df = clipped_df[clipped_df['Z'] <= surf_depth].copy()
     
     return clipped_df
 
@@ -87,13 +87,13 @@ def plot_profile(profile_df, profile_id, dataset_name,
     """
     profile_data = profile_df[profile_df['ID'] == profile_id]
     # check if depths are negative or positive
-    pos_depth = np.any(profile_data['z'].values > 0)
+    pos_depth = np.any(profile_data['Z'].values > 0)
 
     # sort based on depth values (relative to + or - depths)
     if pos_depth:
-        profile_data = profile_data.sort_values(by=['z'], ascending=True)
+        profile_data = profile_data.sort_values(by=['Z'], ascending=True)
     else:
-        profile_data = profile_data.sort_values(by=['z'], ascending=False)
+        profile_data = profile_data.sort_values(by=['Z'], ascending=False)
 
     profile_label = str(profile_id)
     if '.0' in profile_label:
@@ -101,7 +101,7 @@ def plot_profile(profile_df, profile_id, dataset_name,
 
     # depth and measurement values to reuse as np arrays
     measurements = profile_data[dataset_name].values
-    depths = profile_data['z'].values
+    depths = profile_data['Z'].values
 
     if block:
         modified_measurements = []
@@ -149,13 +149,13 @@ def plot_profile(profile_df, profile_id, dataset_name,
     if compare:
             comparative_data = compare_df[compare_df['ID'] == profile_id]
             if pos_depth:
-                comparative_data = comparative_data.sort_values(by=['z'])
+                comparative_data = comparative_data.sort_values(by=['Z'])
             else:
-                comparative_data = comparative_data.sort_values(by=['z'],
+                comparative_data = comparative_data.sort_values(by=['Z'],
                                                                 ascending = False)
-            # print(comparative_data.sort_values(by=['z']))
+            # print(comparative_data.sort_values(by=['Z']))
             c_measurements = comparative_data[compare_name].values
-            c_depths = comparative_data['z'].values
+            c_depths = comparative_data['Z'].values
             c_pos_depth = np.any(c_depths > 0)
 
             if block and c_block:
@@ -308,7 +308,7 @@ def plot_combined_profiles(reference_df, comparison_df,
         profile_data = reference_df[reference_df['ID'] == profile_id]
         if block:
             measurements = profile_data[reference_name]
-            depths = profile_data['z']
+            depths = profile_data['Z']
             modified_measurements = []
             modified_depths = []
             for i in range(len(profile_data)):
@@ -323,7 +323,7 @@ def plot_combined_profiles(reference_df, comparison_df,
             modified_depths.append(max(depths) + 0.01)  # Append the maximum depth
             axs[0].plot(modified_measurements, modified_depths, label=f'Profile {profile_id}')
         else:
-            axs[0].plot(profile_data[reference_name], profile_data['z'], label=f'Profile {profile_id}')
+            axs[0].plot(profile_data[reference_name], profile_data['Z'], label=f'Profile {profile_id}')
         
     axs[0].set_title('Reference Profiles')
     axs[0].set_xlabel(reference_name)
@@ -339,7 +339,7 @@ def plot_combined_profiles(reference_df, comparison_df,
     # Plot the smoothed data for all profiles
     for profile_id in comparison_df['ID'].unique():
         smoothed_data = comparison_df[comparison_df['ID'] == profile_id]
-        axs[1].plot(smoothed_data[c_name], smoothed_data['z'], label=f'Profile {profile_id}')
+        axs[1].plot(smoothed_data[c_name], smoothed_data['Z'], label=f'Profile {profile_id}')
 
     axs[1].set_title('Comparison Profiles')
     axs[1].set_xlabel(f'{c_name}')
@@ -428,7 +428,7 @@ def check_uniformity_and_interpolate(df, profile_id_col, depth_col, *data_cols, 
 
 # Merging profile layers for forward and inverse models
 def merge_layers(df, new_interfaces, dataset,
-                 depth_col='z', x_col='easting', y_col='northing', id_col='ID',
+                 depth_col='Z', x_col='easting', y_col='northing', id_col='ID',
                  med=True):
     """
     Merges profile layers in a DataFrame based on specified depth interfaces 
@@ -440,7 +440,7 @@ def merge_layers(df, new_interfaces, dataset,
     df (pd.DataFrame): The original DataFrame containing soil profile data.
     new_interfaces (list): List of new depth interfaces for merging layers.
     dataset (str): The name of the column in df for which the mean should be calculated (e.g., conductivity).
-    depth_col (str, optional): The name of the column in df representing depth. Defaults to 'z'.
+    depth_col (str, optional): The name of the column in df representing depth. Defaults to 'Z'.
     x_col (str, optional): The name of the column in df representing easting coordinates. Defaults to 'easting'.
     y_col (str, optional): The name of the column in df representing northing coordinates. Defaults to 'northing'.
     id_col (str, optional): The name of the column in df representing profile IDs. Defaults to 'ID'.
@@ -454,7 +454,7 @@ def merge_layers(df, new_interfaces, dataset,
         final_depth = new_interfaces[-1] + new_interfaces[0]
         new_depths = new_interfaces + [final_depth]
 
-        group_df[depth_col] = abs(group_df['z'])
+        group_df[depth_col] = abs(group_df['Z'])
 
         merged_data = {
             depth_col: new_depths,
@@ -466,7 +466,7 @@ def merge_layers(df, new_interfaces, dataset,
 
         start_depth = 0
         for end_depth in new_depths:
-            layers_in_range = group_df[(group_df['z'] > start_depth+0.1) & (group_df['z'] <= end_depth+0.11)]
+            layers_in_range = group_df[(group_df['Z'] > start_depth+0.1) & (group_df['Z'] <= end_depth+0.11)]
             # print(layers_in_range)
             if med:
                 merged_EC = layers_in_range[dataset].median()
@@ -484,9 +484,9 @@ def merge_layers(df, new_interfaces, dataset,
 
             start_depth = end_depth+0.01
 
-        # Create DataFrame and sort it by 'z' in descending order of absolute values
+        # Create DataFrame and sort it by 'Z' in descending order of absolute values
         merged_group_df = pd.DataFrame(merged_data)
-        merged_group_df = merged_group_df.sort_values(by='z', key=lambda x: abs(x), ascending=False)
+        merged_group_df = merged_group_df.sort_values(by='Z', key=lambda x: abs(x), ascending=False)
         return merged_group_df
 
     # Group by 'ID' and apply the processing function
