@@ -40,7 +40,6 @@ from scipy.spatial import cKDTree
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split
 from scipy.stats import pearsonr
-from PyPDF2 import PdfMerger
 from emagpy import Problem
 from scipy.interpolate import interp1d
 
@@ -52,13 +51,19 @@ from resipy import Project
 sys.path.insert(0,'../src/') # this add the emagpy/src directory to the PATH
 
 
-def SA(site, cl, percent, fs_emp, minm, alpha):
+def SA(site, cl, percent, FM, minm, alpha, remove_coil, start_avg, constrain):
     """
     site : 'M', 'P' Proefhoeve Middelkerke
-    fs_emp: 'FSeq', 'CS', 'FSlin' 
+    cl: 0.2, 0.3, 0.4
+    percent: 10, 20, 30
+    FM: 'FSeq', 'CS', 'FSlin' 
     minm: 'L-BFGS-B', 'CG', 'Nelder-Mead', 'ROPE'
-    alpha: 0.02, 0.07, 0.2                             
+    alpha: 0.02, 0.07, 0.2       
+    remove_coil: True, False
+    start_avg: True, False
+    constrain: True, False
     """
+
     # Datetime for filename
     now = (datetime.datetime.now())
     now = now.strftime("%y%m%d_%H%M")
@@ -90,52 +95,61 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
 ########################################################################################################################
 ############################################# ERT INVERSION ################################################
     
+
     ERTdatadir = 'data/ERT/'
+    ERT_path = ERTdatadir + profile_prefix+'-inv-ERT-'+str(cl)+'_'+str(percent)+'.csv'
 
-    if site == 'M':
-        df = pd.read_csv(ERTdatadir + 'electrode_locations_Middelkerke.csv')
-        elec = np.zeros((120, 3))
-        elec[:, 0] = df['distance'].values
+    if os.path.exists(ERT_path):
+        ERT_profiles = pd.read_csv(ERT_path)
+
+    else: 
+        if site == 'M':
+            df = pd.read_csv(ERTdatadir + 'electrode_locations_Middelkerke.csv')
+            elec = np.zeros((120, 3))
+            elec[:, 0] = df['distance'].values
+
+            # invert
+            k = Project()
+            k.createSurvey(ERTdatadir + '23082301.csv', ftype='Syscal')
+
+        elif site == 'P':
+            df = pd.read_csv(ERTdatadir + 'electrode_locations_Proefhoeve.csv')
+            df = df[:-1]
+            elec = np.zeros((60, 3))
+            elec[:, 0] = df['distance'].values
+
+            # invert
+            k = Project()
+            k.createSurvey(ERTdatadir + '23082201.csv', ftype='Syscal')
+
+        k.setElec(elec)
+        k.filterAppResist(vmin=0)
+        k.filterRecip(percent=percent) 
+        k.fitErrorPwl()
+        k.createMesh('trian', cl = cl)
 
         # invert
-        k = Project()
-        k.createSurvey(ERTdatadir + '23082301.csv', ftype='Syscal')
+        k.err = True  # use fitted error in the inversion
+        k.invert()
 
-    elif site == 'P':
-        df = pd.read_csv(ERTdatadir + 'electrode_locations_Proefhoeve.csv')
-        df = df[:-1]
-        elec = np.zeros((60, 3))
-        elec[:, 0] = df['distance'].values
+        # extract profiles
+        m = k.meshResults[0]
+        dfs = []
+        for i in range(df.shape[0]):
+            row = df.loc[i, :]
+            ie = m.df['X'].between(row['distance'] - 0.5, row['distance'] + 0.5) & m.df['Z'].gt(-5)
+            sdf = m.df[ie][['Z', 'Resistivity(ohm.m)']]
+            sdf['Z'] = sdf['Z'].round(1)
+            sdf['Z'] = (sdf['Z'] * 2).round(1) / 2
+            sdf = sdf.groupby('Z').mean().reset_index()
+            sdf['easting'] = row['easting']
+            sdf['northing'] = row['northing']
+            sdf['ID'] = row['ID']
+            dfs.append(sdf)
 
-        # invert
-        k = Project()
-        k.createSurvey(ERTdatadir + '23082201.csv', ftype='Syscal')
+        ERT_profiles = pd.concat(dfs)
+        ERT_profiles.to_csv(ERTdatadir + profile_prefix+'-inv-ERT-'+str(cl)+'_'+str(percent)+'.csv', index=False)
 
-    k.setElec(elec)
-    k.filterAppResist(vmin=0)
-    k.filterRecip(percent=percent) 
-    k.fitErrorPwl()
-    k.createMesh('trian', cl = cl)
-
-    # invert
-    k.err = True  # use fitted error in the inversion
-    k.invert()
-
-    # extract profiles
-    m = k.meshResults[0]
-    dfs = []
-    for i in range(df.shape[0]):
-        row = df.loc[i, :]
-        ie = m.df['X'].between(row['distance'] - 0.5, row['distance'] + 0.5) & m.df['Z'].gt(-5)
-        sdf = m.df[ie][['Z', 'Resistivity(ohm.m)']]
-        sdf['Z'] = sdf['Z'].round(1)
-        #sdf['Z'] = (sdf['Z'] * 2).round(1) / 2
-        sdf = sdf.groupby('Z').mean().reset_index()
-        sdf['easting'] = row['easting']
-        sdf['northing'] = row['northing']
-        sdf['ID'] = row['ID']
-        dfs.append(sdf)
-    ERT_profiles = pd.concat(dfs)
 
 ########################################################################################################################
 ############################################# 01 CALIBRATION ################################################
@@ -149,8 +163,8 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     if config['raw']:
         emfile_prefix = emfile_prefix + '_raw'
 
-    raw_em_data = os.path.join(datafolder, f'{Raw_emfile_prefix}.csv')
-    samplocs = os.path.join(datafolder, f'{profile_prefix}_samps.csv')
+    #raw_em_data = os.path.join(datafolder, f'{Raw_emfile_prefix}.csv')
+    #samplocs = os.path.join(datafolder, f'{profile_prefix}_samps.csv')
     ###
 
     raw_em_data = os.path.join(datafolder, f'{Raw_emfile_prefix}.csv')
@@ -274,16 +288,6 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
                 interpolated_df.reset_index(inplace=True)
                 interpolated_df.rename(columns={'index': depth_col}, inplace=True)
                 all_profiles_df = pd.concat([all_profiles_df, interpolated_df])
-        
-        # # Plot the combined histogram of depth intervals for all non-uniform profiles
-        # if plotted_profiles:
-        #     plt.title('Depth Interval Distributions for Non-uniform Profiles')
-        #     plt.xlabel('Depth Intervals')
-        #     plt.ylabel('Frequency')
-        #     plt.legend()
-        #     plt.show()
-        # else:
-        #     plt.close()
 
         # Reset index for the concatenated DataFrame
         all_profiles_df.reset_index(drop=True, inplace=True)
@@ -371,8 +375,8 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     ip_result = forward_results[profile_id][sensor_id]['IP']
     qp_result = forward_results[profile_id][sensor_id]['QP']
 
-    print(f"IP for profile {profile_id} with sensor {sensor_id}: {ip_result}")
-    print(f"QP for profile {profile_id} with sensor {sensor_id}: {qp_result}")
+    #print(f"IP for profile {profile_id} with sensor {sensor_id}: {ip_result}")
+    #print(f"QP for profile {profile_id} with sensor {sensor_id}: {qp_result}")
 
 ##########################################################################################################
 
@@ -497,6 +501,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
 
         # Add a line of perfect agreement
         min_val = min(combined_df[measured_col].min(), combined_df[modeled_col].min())
+
         max_val = max(combined_df[measured_col].max(), combined_df[modeled_col].max())
         ax.plot([min_val, max_val], [min_val, max_val], 'r--', label='1:1 Line')
 
@@ -520,7 +525,6 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
         fig.delaxes(axes.flatten()[j])
 
     # Show the plot
-    #cal_metaname = os.path.join(cal_folder, f'{emfile_prefix}_calibration_plots.pdf')
     #plt.savefig(cal_metaname)
     #plt.show()
 
@@ -542,7 +546,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
             'intercept': [intercept]
         })
         dataframes.append(df_temp)
-        print(f"{coil_config}: Mod = {slope:.3f} ECa + {intercept:.3f}")
+        #print(f"{coil_config}: Mod = {slope:.3f} ECa + {intercept:.3f}")
 
     # Concatenate all the listed DataFrames into df.calpar
     df_calpar = pd.concat(dataframes, ignore_index=True)
@@ -562,14 +566,15 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     # Perform the calibration
     for coil_config, (slope, intercept) in regression_params.items():
         if coil_config in cal_EM.columns:  # Only apply if the coil_config is a column in the DataFrame
-            print(f"{coil_config}: Mod = {slope:.3f} ECa + {intercept:.3f}")
+            #print(f"{coil_config}: Mod = {slope:.3f} ECa + {intercept:.3f}")
             cal_EM[coil_config] = slope * cal_EM[coil_config] + intercept
             cal_trans[coil_config] = slope * cal_trans[coil_config] + intercept
-            print('calibrated')
+            #print('calibrated')
 
     cal_r_EM = cal_EM.copy()
     cal_r_trans = cal_trans.copy()
     EM_transect_r = EM_transect.copy()
+    print('cal_r_EM', cal_r_EM)
 
     # Convert calibrated data to LIN ECa and rECa
     for cc in instrument.cc_names:  # Only apply if the coil_config is a column in the DataFrame
@@ -583,6 +588,10 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
                                     eca_input_units='mS', 
                                     qp_output_units='ppm')
             # perform rECa prediction
+            print('cc', cc)
+            print('ip_config', ip_config)
+            print('cal_EM[ip_config]', cal_EM[ip_config])
+
             cal_r_EM[cc], _ = Prop.reca(coil_configuration, 
                                             qp, 
                                             cal_EM[ip_config]*1000, 
@@ -631,18 +640,18 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
             # convert from S/m to mS/m
             cal_r_trans[cc] = cal_r_trans[cc]*1000
             EM_transect_r[cc] = EM_transect_r[cc]*1000
-            print(f"Modeled robust {cc} ECa, median = {cal_r_trans[cc].median()} vs median = {cal_trans[cc].median()} ")
+            #print(f"Modeled robust {cc} ECa, median = {cal_r_trans[cc].median()} vs median = {cal_trans[cc].median()} ")
 
 #############################################################################################################################
 
     # Data import dry down experiment
-    dry_down = os.path.join(datafolder, f'Dry_down.csv')
-    dry_d = pd.read_csv(dry_down, sep=',', header=0)
+    #dry_down = os.path.join(datafolder, f'Dry_down.csv')
+    #dry_d = pd.read_csv(dry_down, sep=',', header=0)
 
     #cal_folder = os.path.join(datafolder, 'calibrated')
     #em_survey = os.path.join(cal_folder, f'{emfile_prefix}_calibrated_rECa.csv')
     #em_survey = pd.read_csv(em_survey, sep=',', header=0)
-    em_survey = cal_r_EM
+    em_survey = cal_r_EM #### Link 01 to 02 files
     sampleprop = os.path.join(datafolder, f'{profile_prefix}_soil_analysis.csv')
     samples_analysis = pd.read_csv(sampleprop, sep=',', header=0)
 
@@ -651,38 +660,50 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
 
 ########################################################################################################################
 
-    temp_dir = 'temp_emp_04' 
-    infile_name = 'infile_s04.csv'
-    os.makedirs(temp_dir, exist_ok=True)
-    temp_file = os.path.join(temp_dir,infile_name)
+    #temp_dir = 'temp_emp_02' 
+    #infile_name = 'infile_s02.csv'
+    #os.makedirs(temp_dir, exist_ok=True)
+    #temp_file = os.path.join(temp_dir,infile_name)
 
 ########################################################################################################################
 ############################################# INVERSION CONFIGURE INPUT ################################################
 
-
     # Remove coils for inversion?
-    config['remove_coil'] = True    # set to True if you want to remove coils in the inversion process
+    config['remove_coil'] = remove_coil    # set to True if you want to remove coils in the inversion process
+    # Reference profile for starting model (conductivity values)
+    config['start_avg'] = start_avg     # take average of input resistivity profiles per layer as starting model
+                                    # if false, reference profile is taken as starting model
+    config['constrain']=constrain
 
+                                    
     if site == 'P':
-        config['coil_n'] = [0,1]    # indexes of coils to remove (cf. emagpy indexing)
+        config['coil_n'] = [0, 1]    # indexes of coils to remove (cf. emagpy indexing)
                                     # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
                                     # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
-            
-    else:
-        config['coil_n'] = [4,5]    # indexes of coils to remove (cf. emagpy indexing)
+
+        config['bounds'] = [(10, 55), (20, 120), (50, 335), (50, 250), (10, 50)] 
+
+        config['reference_profile'] = 15 # ID of ERT (conductivity) profile to be used 
+                                    #  to generate starting model
+                                    # For proefhoeve nr 15 is used, for middelkerke 65
+
+    elif site == 'M':
+        config['bounds'] = [(5, 80), (50, 380), (76, 820), (100, 1000), (150, 1000)]
+
+        config['coil_n'] = [4, 5]    # indexes of coils to remove (cf. emagpy indexing)
                                     # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
                                     # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
+
+        config['reference_profile'] = 65 # ID of ERT (conductivity) profile to be used 
+                                        #  to generate starting model
+                                        # For proefhoeve nr 15 is used, for middelkerke 65
 
     # Inversion parameters
-    config['fs_emp'] = fs_emp 
+    config['FM'] = FM 
     config['opt_method'] = minm
     config['constrain']=True
     config['regularization'] = 'l2'
     config['alpha'] = alpha
-
-    # Reference profile for starting model (conductivity values)
-    config['start_avg'] = False     # take average of input resistivity profiles per layer as starting model
-                                    # if false, reference profile is taken as starting model
 
     # Define the interfaces depths between layers for starting model and inversion
     #           (number of layers = len(config['interface'])+1)
@@ -694,16 +715,15 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
                         1.0,
                         2.0
                             ] # depths to custom model interfaces
-    # Inversion constraining
 
-    config['custom_bounds'] = True
-    config['bounds'] = [(10, 55), (20, 120), (50, 335), (50, 250), (10, 50)]
 
     # remove profiles at transect edges
     config['n_omit'] =  10 # number of profiles to exclude from the start
                         # and end of the ERT transect (none = 0) for the inversion
                         # a total of 60 profiles is available, for middelkerke
                         # 120 profiles are available 
+
+    config['custom_bounds'] = True
 
     if config['constrain']:
         if config['custom_bounds']:
@@ -736,6 +756,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     #em_lin = os.path.join(cal_folder,f'{emfile_prefix}_transect_calibrated_LIN.csv')
     #em_survey = os.path.join(cal_folder, f'{emfile_prefix}_calibrated_rECa.csv')
     #samplocs = os.path.join(datafolder, f'{profile_prefix}_samps.csv')
+    em_rec = cal_r_trans ### link
 
     if em_intype == 'rec':
         infile = em_rec
@@ -764,21 +785,21 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     #em_rec = pd.read_csv(em_rec, sep=',', header=0)
     #em_lin = pd.read_csv(em_lin, sep=',', header=0)
     #em_survey = pd.read_csv(em_survey, sep=',', header=0)
-    #samples = pd.read_csv(samplocs, sep=',', header=0)
+    samples = pd.read_csv(samplocs, sep=',', header=0)
 
 
-    if c_transform:
+    #if c_transform:
         # Create a new filename with the target EPSG code
-        em_rec = utm_to_epsg(em_rec, c_utmzone, target_epsg=c_target_cs)
-        em_lin = utm_to_epsg(em_lin, c_utmzone, target_epsg=c_target_cs)
-        em_survey = utm_to_epsg(em_survey, c_utmzone, target_epsg=c_target_cs)
+        #em_rec = utm_to_epsg(em_rec, c_utmzone, target_epsg=c_target_cs)
+        #em_lin = utm_to_epsg(em_lin, c_utmzone, target_epsg=c_target_cs)
+        #em_survey = utm_to_epsg(em_survey, c_utmzone, target_epsg=c_target_cs)
 
     instrument = Initialize.Instrument(config['instrument_code'],
                                         instrument_height=config['instrument_height'],
                                             instrument_orientation=config['instrument_orientation']
                                             )
 
-    #em_samples = get_coincident(em_survey, samples)
+    em_samples = get_coincident(em_survey, samples)
 
     # ---------------------------------------------------------------------------- #
     # Get ERT profiles
@@ -822,7 +843,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     data_column = ['EC(mS/m)']
     # Assuming ert_final is your DataFrame with profile data
     all_profiles_df, uniform_intervals = check_uniformity_and_interpolate(
-        dc_corr, 'ID', 'z', *data_column
+        dc_corr, 'ID', 'Z', *data_column
     )
 
     dataset_name = 'EC(mS/m)'  # The variable of interest
@@ -853,7 +874,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
         plot_title = 'Original vs DC corrected data'
         first_in = .0
     ert_eval = ert_final.copy()
-    ert_eval['z'] = ert_eval['z'].values + first_in
+    ert_eval['Z'] = ert_eval['Z'].values + first_in
 
     #plot_profile(ert_eval, profile_id, dataset_name, compare=True, compare_df = comparedf, compare_name = 'EC(mS/m)', block=True, plot_title=plot_title)
 
@@ -881,7 +902,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
             models[profile_id] = M
         return models
 
-    models = generate_forward_model_inputs(merged_df, 'ID', 'z', 'EC(mS/m)')
+    models = generate_forward_model_inputs(merged_df, 'ID', 'Z', 'EC(mS/m)')
 
 ########################################################################################################################
 
@@ -891,8 +912,8 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     # 
     profile_data = merged_df[merged_df['ID'] == profile_id].copy()
     res_col = 'EC(mS/m)'
-    depth = 'z'
-    max_ert_depth = ert_final['z'].abs().max()
+    depth = 'Z'
+    max_ert_depth = ert_final['Z'].abs().max()
 
     # 
     # ------------------------------------------------------------------------------
@@ -928,18 +949,8 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     layers_interfaces = np.insert(layers_interfaces, 0, 0)
     profile_data = ert_final[ert_final['ID'] == profile_id]
 
-    #fig, axr = plt.subplots(figsize=(5, 10))
-    #axr.set_xlabel('EC [mS/m]')
-    #axr.set_ylabel('depth [m]')
-    #axr.plot((profile_data[dataset_name]),profile_data['z'], label='original (DC) ERT EC',)
-    #if not config['n_int']: 
-    #    axr.plot(con[:-1]*1000,-thick, '.', label='Model EC 9khz',color = 'red')
-    #else:
-    #    axr.plot(con*1000,-thick, '.', label='Model EC 9khz',color = 'red')
-    #axr.set_title(f'Reference profile: ID {profile_id}')
-
     conductivities = con*1000
-    print('conductivities', conductivities)
+    #print('conductivities', conductivities)
 
     ec_cols_ref = []
     if 'end' in config['interface']:
@@ -954,10 +965,10 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     else:
         if len(conductivities) == len(thick):
             mod_layers = thick[1:]
-            print(f"length modlayers = {len(mod_layers)} with {len(conductivities)} conductivities")
+            #print(f"length modlayers = {len(mod_layers)} with {len(conductivities)} conductivities")
         elif len(conductivities) == (len(thick)+1):
             mod_layers = thick
-            print(f"length modlayers = {len(mod_layers)} with {len(conductivities)} conductivities")
+            #print(f"length modlayers = {len(mod_layers)} with {len(conductivities)} conductivities")
         else:
             raise ValueError(f"Check length of conductivities ({len(conductivities)}) and layers ({len(thick)}) arrays!!")
         
@@ -968,14 +979,14 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     for i in merged_df['ID'].unique(): 
         profile_data = merged_df[merged_df['ID'] == i].copy()
         if not config['n_int']:
-            if abs(profile_data.iloc[0]['z']) > max((list(map(abs, ec_cols_ref)))):
+            if abs(profile_data.iloc[0]['Z']) > max((list(map(abs, ec_cols_ref)))):
                 #print(f'removed {profile_data.iloc[0]["z"]}')
                 profile_data = profile_data.drop(profile_data.iloc[0].name)
-            elif abs(profile_data.iloc[-1]['z']) < 0.1:
+            elif abs(profile_data.iloc[-1]['Z']) < 0.1:
                 #print(f'removed {profile_data.iloc[-1]["z"]}')
                 profile_data = profile_data.drop(profile_data.iloc[-1].name)
         res_col = 'EC(mS/m)'
-        depth = 'z' 
+        depth = 'Z' 
         con_m = profile_data[res_col].values
         layers_interfaces = np.cumsum(models[i].thick)
         layers_interfaces = np.insert(layers_interfaces, 0, 0)
@@ -1022,22 +1033,6 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
         maxstat = np.flipud(ec_stats.loc['max'].values)
         start_mod = ec_stats.loc['mean'].values
 
-    #axr.plot(np.flipud(start_mod),position, 
-    #            '*', 
-    #            label='average conductivity',
-    #            color = 'green',
-    #            alpha = 0.5)
-    #axr.plot(minstat,position, 
-    #            '.', 
-    #            label='min',
-    #            color = 'black',
-    #            alpha = 0.2)
-    #axr.plot(maxstat,position, 
-    #            '+', 
-    #            label='max',
-    #            color = 'black',
-    #            alpha = 0.25)
-
     #axr.legend()
     if config['constrain']:
         if config['custom_bounds']:
@@ -1051,13 +1046,13 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
                     minp = ec_stats.loc['min'][name]
                 else:
                     minp = 10
-                max = ec_stats.loc['max_sd'][name]
-                min_max = tuple([minp,max])
+                maxn = ec_stats.loc['max_sd'][name]
+                min_max = tuple([minp,maxn])
                 bounds.append(min_max)
             bounds = np.round(bounds, decimals=0)
             if not config['n_int'] and not config['custom_bounds']:
                 bounds = bounds[1:]
-            print(f'autobounds = {bounds}')
+            #print(f'autobounds = {bounds}')
 
 ########################################################################################################################
 
@@ -1065,6 +1060,11 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
 
     if 'code' in em_samples.columns:
         em_samples = em_samples.rename(columns={'code': 'ID'})
+
+    temp_dir = 'temp_emp' 
+    infile_name = 'survey_input.csv'
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_file = os.path.join(temp_dir, infile_name)
 
     i = instrument.niter
     n = 4
@@ -1080,7 +1080,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     else:
         em_samples.columns.values[n:n+i] = new_columns
 
-    #em_samples.to_csv(temp_file)
+    em_samples.to_csv(temp_file) # em_samples is just saved and called by Problem.createSurvey()
 
     # transect inversion settings
 
@@ -1103,28 +1103,28 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
         else:
             s_rec.removeCoil(config['coil_n'])
 
-    print(f'Data used for inversion: {s_rec.coils}')
+    #print(f'Data used for inversion: {s_rec.coils}')
 
 ########################################################################################################################
 
     # invert using ROPE solver (RObust Parameter Estimation)
     warnings.filterwarnings('ignore')
     opt_meth = config['opt_method']
-    inv_meth = config['fs_emp']
+    inv_meth = config['FM']
     reg_meth = config['regularization']
     alph_param = config['alpha']
     if opt_meth in ['MCMC', 'ROPE']:
         if config['constrain']:
             
             print(f'Constrained inversion using {inv_meth} with {opt_meth}, reg={reg_meth}, alpha={alph_param}')
-            s_rec.invert(forwardModel=config['fs_emp'], method=opt_meth, 
+            s_rec.invert(forwardModel=config['FM'], method=opt_meth, 
                     regularization=reg_meth, alpha=alph_param, 
                     bnds=bounds
                     )
 
         else:
             print(f'Inversion using {inv_meth} with {opt_meth}, reg={reg_meth}, alpha={alph_param}')
-            s_rec.invert(forwardModel=config['fs_emp'], method=opt_meth, 
+            s_rec.invert(forwardModel=config['FM'], method=opt_meth, 
             regularization=reg_meth, alpha=alph_param, njobs=-1
             )
 
@@ -1201,7 +1201,6 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     offset = 4
     water_perm = 80
     ds_c['bulk_ec_hp'] = logsdon(50e6, ds_c.rperm, ds_c.iperm)
-
     ds_c['bulk_ec_dc_hp'] = predict.BulkECDC(Soil(frequency_ec = 50e6,
                                                 bulk_ec = ds_c.bulk_ec_hp.values))
 
@@ -1215,65 +1214,13 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     ds_c['water_ec_hp_t'] = WraithOr(ds_c.water_ec_hp, ds_c.temp)
     ds_c['iperm_water_t'] = ds_c.water_ec_hp_t/(50e6*2*pi*epsilon_0)
 
-    # -------------------------------------------------------------------------------------
-
-    # DRY DOWN experiment
-    dry_d['P_top_EC'] = logsdon(50e6, dry_d.P_top_RP, dry_d.P_top_IP)
-    dry_d['P_bot_EC'] = logsdon(50e6, dry_d.P_bot_RP, dry_d.P_bot_IP)
-    dry_d['M_top_EC'] = logsdon(50e6, dry_d.M_top_RP, dry_d.M_top_IP)
-    dry_d['M_bot_EC'] = logsdon(50e6, dry_d.M_bot_RP, dry_d.M_bot_IP)
-
-    dry_d['P_top_ECw'] = predict.WaterEC(Soil(bulk_ec_dc = dry_d.P_top_EC.values,
-                                            water = dry_d.P_top_W.values,
-                                            temperature = dry_d.P_top_T.values+273.15))
-
-    dry_d['P_bot_ECw'] = predict.WaterEC(Soil(bulk_ec_dc = dry_d.P_bot_EC.values,
-                                            water = dry_d.P_bot_W.values,
-                                            temperature = dry_d.P_bot_T.values+273.15))
-
-    dry_d['M_top_ECw'] = predict.WaterEC(Soil(bulk_ec_dc = dry_d.M_top_EC.values,
-                                            water = dry_d.M_top_W.values,
-                                            temperature = dry_d.M_top_T.values+273.15))
-
-    dry_d['M_bot_ECw'] = predict.WaterEC(Soil(bulk_ec_dc = dry_d.M_bot_EC.values,
-                                            water = dry_d.M_bot_W.values,
-                                            temperature = dry_d.M_bot_T.values+273.15))
-
-    # DRY DOWN experiment
-    dry_d['P_top_EC'] = logsdon(50e6, dry_d.P_top_RP, dry_d.P_top_IP)
-    dry_d['P_bot_EC'] = logsdon(50e6, dry_d.P_bot_RP, dry_d.P_bot_IP)
-    dry_d['M_top_EC'] = logsdon(50e6, dry_d.M_top_RP, dry_d.M_top_IP)
-    dry_d['M_bot_EC'] = logsdon(50e6, dry_d.M_bot_RP, dry_d.M_bot_IP)
-
-    dry_d['P_top_ECw'] = predict.WaterEC(Soil(bulk_ec_dc = dry_d.P_top_EC.values,
-                                            water = dry_d.P_top_W.values,
-                                            temperature = dry_d.P_top_T.values+273.15))
-
-    dry_d['P_bot_ECw'] = predict.WaterEC(Soil(bulk_ec_dc = dry_d.P_bot_EC.values,
-                                            water = dry_d.P_bot_W.values,
-                                            temperature = dry_d.P_bot_T.values+273.15))
-
-    dry_d['M_top_ECw'] = predict.WaterEC(Soil(bulk_ec_dc = dry_d.M_top_EC.values,
-                                            water = dry_d.M_top_W.values,
-                                            temperature = dry_d.M_top_T.values+273.15))
-
-    dry_d['M_bot_ECw'] = predict.WaterEC(Soil(bulk_ec_dc = dry_d.M_bot_EC.values,
-                                            water = dry_d.M_bot_W.values,
-                                            temperature = dry_d.M_bot_T.values+273.15))
-
-    if profile_prefix == 'proefhoeve':
-        water_ec_10cm = dry_d.P_top_ECw.values[0]
-        water_ec_50cm = dry_d.P_bot_ECw.values[0]
-        water_ec_mean = (water_ec_10cm + water_ec_50cm)/2
-
-    elif profile_prefix == 'middelkerke':
-        water_ec_10cm = dry_d.M_top_ECw.values[0]
-        water_ec_50cm = dry_d.M_bot_ECw.values[0]
-        water_ec_mean = (water_ec_10cm + water_ec_50cm)/2
 
     ###################
 
     # -------------------------------------------------------------------------------------
+
+    bulk_ec_inv_50cm = ds_c.bulk_ec_inv[ds_c['depth']==50]
+    bulk_ec_inv_10cm = ds_c.bulk_ec_inv[ds_c['depth']==10]
 
     clay_50cm = np.mean(ds_c.clay[ds_c['depth']==50])
     clay_10cm = np.mean(ds_c.clay[ds_c['depth']==10])
@@ -1292,15 +1239,14 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
     temp_mean = np.mean(ds_c.temp)
     vwc_50cm = np.mean(ds_c.vwc[ds_c['depth']==50])
     vwc_10cm = np.mean(ds_c.vwc[ds_c['depth']==10])
-    vwc_mean = np.mean(ds_c.vwc) # 0.289 Proef
-
+    vwc_mean = np.mean(ds_c.vwc)
     f_ec = 9000
     t_conv = 273.15
-    t_mean_conv = temp_mean+t_conv # 297.28 Proef
+    t_mean_conv = temp_mean+t_conv
+    t_50cm_conv = temp_50cm+t_conv
+    t_10cm_conv = temp_10cm+t_conv
 
-    # Mean of observed water values
-    VWC_mean = np.mean(ds_c['vwc'].values) # 0.2891 Proef
-
+    Y0 = pd.read_csv(os.path.join('data/'+site+'Y0.csv'), sep=',', header=0) #link
 ########################################################################################################################
 
     def deterministic(feature, target, df, iters=100, round_n=3):
@@ -1328,6 +1274,11 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
         DR2_10, DRMSE_10 = [None] * iters, [None] * iters
         DR2_50, DRMSE_50 = [None] * iters, [None] * iters
         DR2_ID, DRMSE_ID, ypred_ID_ = [None] * iters, [None] * iters, [None] * iters
+
+        D0R2_LS, D0RMSE_LS = [None] * iters, [None] * iters
+        D0R2_LT, D0RMSE_LT = [None] * iters, [None] * iters
+        D0R2_ID, D0RMSE_ID = [None] * iters, [None] * iters
+
         y_ = [None] * iters
         
         for i in range(iters):
@@ -1338,6 +1289,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
 
             ### Combine test indices from both layers
             idx_test = np.concatenate((idx_test10, idx_test50))
+            Y0_test = Y0.ID0[idx_test]
             y_test = np.concatenate((y_test10, y_test50)).flatten()
             X_test = (np.concatenate((X_test10, X_test50))/1000).flatten()
             y_[i] = y_test
@@ -1348,12 +1300,14 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
                         frequency_ec=f_ec,
                         clay = clay_mean,
                         bulk_density = bd_mean,
-                        water_ec = water_ec_mean,
+                        water_ec = water_ec_hp_mean_t,
                         temperature = t_mean_conv
                         )
             Dypred_LT = predict.Water(LT)
             DR2_LT[i] = round(r2_score(y_test, Dypred_LT), round_n)
             DRMSE_LT[i] = round(RMSE(y_test, Dypred_LT), round_n)
+            D0R2_LT[i] = round(r2_score(Y0_test, Dypred_LT), round_n)
+            D0RMSE_LT[i] = round(RMSE(Y0_test, Dypred_LT), round_n)
 
             ### Predict using 10 cm layer
             layer_10 = Soil( 
@@ -1361,7 +1315,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
                         frequency_ec=f_ec,
                         clay = clay_10cm,
                         bulk_density = bd_10cm,
-                        water_ec = water_ec_10cm,
+                        water_ec = water_ec_hp_10cm_t,
                         temperature = t_10cm_conv
                         )
             Dypred_10 = predict.Water(layer_10)
@@ -1374,7 +1328,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
                         frequency_ec=f_ec,
                         clay = clay_50cm,
                         bulk_density = bd_50cm,
-                        water_ec = water_ec_50cm,
+                        water_ec = water_ec_hp_50cm_t,
                         temperature = t_50cm_conv
                         )
             Dypred_50 = predict.Water(layer_50)
@@ -1386,6 +1340,8 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
             Dypred_LS = np.concatenate((Dypred_10, Dypred_50))
             DR2_LS[i] = round(r2_score(y_test, Dypred_LS), round_n)
             DRMSE_LS[i] = round(RMSE(y_test, Dypred_LS), round_n)
+            D0R2_LS[i] = round(r2_score(Y0_test, Dypred_LS), round_n)
+            D0RMSE_LS[i] = round(RMSE(Y0_test, Dypred_LS), round_n)
 
             ### Predict using ideal samples
             filtered_df = df.loc[idx_test]
@@ -1395,33 +1351,27 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
                         frequency_ec=f_ec,
                         clay = filtered_df['clay'].values,
                         bulk_density = filtered_df['bd'].values,
-                        water_ec = filtered_df['water_ec_hp'].values,
+                        water_ec = filtered_df['water_ec_hp_t'].values,
                         temperature = filtered_df['temp'].values+t_conv
                         )
             Dypred_ID = predict.Water(ID)
             ypred_ID_[i] = Dypred_ID
             DR2_ID[i] = round(r2_score(y_test, Dypred_ID), round_n)
             DRMSE_ID[i] = round(RMSE(y_test, Dypred_ID), round_n)
+            D0R2_ID[i] = round(r2_score(Y0_test, Dypred_ID), round_n)
+            D0RMSE_ID[i] = round(RMSE(Y0_test, Dypred_ID), round_n)
 
-        return np.median(DR2_LT), np.median(DRMSE_LT), np.median(DR2_ID), np.median(DRMSE_ID), np.median(DR2_LS), np.median(DRMSE_LS), np.median(DR2_10), np.median(DRMSE_10), np.median(DR2_50), np.median(DRMSE_50)
+        return np.median(DR2_LT), np.median(DRMSE_LT), np.median(DR2_ID), np.median(DRMSE_ID), np.median(DR2_LS), np.median(DRMSE_LS), np.median(DR2_10), np.median(DRMSE_10), np.median(DR2_50), np.median(DRMSE_50), np.median(D0R2_LT), np.median(D0RMSE_LT), np.median(D0R2_ID), np.median(D0RMSE_ID), np.median(D0R2_LS), np.median(D0RMSE_LS)
 
     feature = 'bulk_ec_inv'
     Dresults = {}
     target = 'vwc'
 
-    DR2_LT, DRMSE_LT, DR2_ID, DRMSE_ID, DR2_LS, DRMSE_LS, DR2_10, DRMSE_10, DR2_50, DRMSE_50 = deterministic(feature, target, ds_c)
-
-    #Dresults[feature] = {
-    #        'LT': {'R2': DR2_LT, 'RMSE': DRMSE_LT},
-    #        'LS': {'R2': DR2_LS, 'RMSE': DRMSE_LS},
-    #        'ID': {'R2': DR2_ID, 'RMSE': DRMSE_ID},
-    #'layer 10': {'R2': DR2_10, 'RMSE': DRMSE_10},
-    #'layer 50': {'R2': DR2_50, 'RMSE': DRMSE_50}
-    #}
+    DR2_LT, DRMSE_LT, DR2_ID, DRMSE_ID, DR2_LS, DRMSE_LS, DR2_10, DRMSE_10, DR2_50, DRMSE_50, D0R2_LT, D0RMSE_LT, D0R2_ID, D0RMSE_ID, D0R2_LS, D0RMSE_LS = deterministic(feature, target, ds_c)
 
 ###############################################################################################################################################
 
-    filename = f"{now}_{site}_{fs_emp}_{minm}_{alpha}_{cl}_{percent}_04_unc.json"
+    filename = f"{now}_{site}_{FM}_{minm}_{alpha}_{cl}_{percent}_04_unc.json"
     filepath = os.path.join(temp_dir,filename)
     file = open(filepath, 'w')
 
@@ -1450,7 +1400,7 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
 
     file.write('\t"alpha parameter": "{}",'.format(alph_param) + '\n\n')
     file.write('\t"optimisation method":"{}",'.format(config['opt_method']) + '\n')
-    file.write('\t"forward model": "{}",'.format(config['fs_emp']) + '\n')
+    file.write('\t"forward model": "{}",'.format(config['FM']) + '\n')
     file.write('\t"site": "{}",'.format(site) + '\n')
     file.write('\t"Dresults": "{}",'.format(Dresults) + '\n')
 
@@ -1464,5 +1414,5 @@ def SA(site, cl, percent, fs_emp, minm, alpha):
             file.write('\t"automated inversion constraints (bnds)": "{}"\n'.format(bounds) + '\n')
 
     file.close()
-
-    return DR2_LT, DRMSE_LT, DR2_ID, DRMSE_ID, DR2_LS, DRMSE_LS, DR2_10, DRMSE_10, DR2_50, DRMSE_50
+    round_n = 3
+    return round(DR2_LT, round_n), round(DRMSE_LT, round_n), round(DR2_ID, round_n), round(DRMSE_ID, round_n), round(DR2_LS, round_n), round(DRMSE_LS, round_n), round(DR2_10, round_n), round(DRMSE_10, round_n), round(DR2_50, round_n), round(DRMSE_50, round_n), round(D0R2_LT, round_n), round(D0RMSE_LT, round_n), round(D0R2_ID, round_n), round(D0RMSE_ID, round_n), round(D0R2_LS, round_n), round(D0RMSE_LS, round_n)

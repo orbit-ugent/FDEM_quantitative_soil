@@ -154,8 +154,8 @@ def plot_stoch_implementation(df, Y, Ypred, r2, profile_prefix):
     # Plot a line and label for R2
     axes.plot([0, 60], [0, 60], color='black', label=f'R2 = {r2}')
     
-    axes.set_ylabel(f'Water [%] predicted', fontsize=20)
-    axes.set_xlabel(f'Water [%] observed in field', fontsize=20)
+    axes.set_ylabel(r'Predicted observed $\theta$ [%]', fontsize=20)
+    axes.set_xlabel(r'Observed $\theta$ [%]', fontsize=20)
 
     for i, (x, y) in enumerate(zip(Y, Ypred)):
         if df['depth'].iloc[i] == 50:

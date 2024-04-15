@@ -229,43 +229,34 @@ def reca(coil_configuration, qp, ip, precision=.001, noise=0, reference_eca=None
 
         # Determine reca (S/m) TODO vectorize
         for ii in range(size):
-
             # Check if value exists
             if np.isnan(reshaped_qp[ii]):
-
                 # Set to NaN
                 intermediate_eca[ii] = np.NaN
-
             else:
-
                 # Calculate intersection
                 intersect_line = shapely.geometry.LineString([(ec_range[0], reshaped_qp[ii]), (ec_range[-1], reshaped_qp[ii])])
-                intersect = np.asarray(ec_qp_curve.intersection(intersect_line))
+                intersect = ec_qp_curve.intersection(intersect_line)
 
-                # Case no intersection
-                if not intersect.any():
-
-                    # Set to NaN
-                    intersect = np.NaN
-
+                # Check the type of intersection
+                if intersect.is_empty:
+                    # Set to NaN if there's no intersection
+                    intermediate_eca[ii] = np.NaN
+                elif isinstance(intersect, shapely.geometry.multipoint.MultiPoint):
+                    # If there are multiple points of intersection, handle them
+                    distances = [abs(point.x - reference_eca[ii]) for point in intersect.geoms]
+                    # Choose the point with minimum distance to the reference ECa
+                    min_distance_index = distances.index(min(distances))
+                    # Access the specific point using .geoms and the index
+                    selected_point = list(intersect.geoms)[min_distance_index]
+                    intermediate_eca[ii] = selected_point.x
+                elif isinstance(intersect, shapely.geometry.point.Point):
+                    # If there's only one point of intersection, use it directly
+                    intermediate_eca[ii] = intersect.x
                 else:
-
-                    # Get relevant data
-                    if intersect.ndim > 1:
-
-                        # Grab data
-                        intersect = intersect[:, 0]
-
-                        # Calculate nearest
-                        near = np.abs(intersect - reference_eca[ii])
-
-                        # Get intermediate_eca (S/m), i.e. get nearest
-                        intermediate_eca[ii] = intersect[near.argmin()]
-
-                    else:
-
-                        # Get intermediate_eca (S/m)
-                        intermediate_eca[ii] = intersect[0]
+                    # Handle unexpected geometry types
+                    print(f"Unexpected geometry type: {type(intersect)}")
+                    intermediate_eca[ii] = np.NaN
 
                 # Clear variable
                 del intersect
