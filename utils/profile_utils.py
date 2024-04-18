@@ -64,7 +64,7 @@ def clip_profiles_to_max_depth(df, max_depth, surf_depth):
 # Plot a single profile with or without comparative profile data
 def plot_profile(profile_df, profile_id, dataset_name, 
                  compare=False, compare_df=None, compare_name=None, subs=False,
-                 xlims=None, plot_title =None, save_plot = False, plot_name = None,
+                 xlims=None, ylims=None, plot_title =None, save_plot = False, plot_name = None,
                  block=False, c_block=True
                  ):
     """
@@ -193,7 +193,7 @@ def plot_profile(profile_df, profile_id, dataset_name,
                 c_modified_depths = np.array(c_modified_depths)
 
             if subs:
-                fig, axs = plt.subplots(2, 1, figsize=(16, 8))
+                fig, axs = plt.subplots(2, 1, figsize=(16, 4))
                 # Plot the original data
                 if block:    
                     axs[0].plot(c_modified_measurements, c_modified_depths, label=f'Profile {profile_id}',color='red')
@@ -203,6 +203,9 @@ def plot_profile(profile_df, profile_id, dataset_name,
                 #axs[0].invert_yaxis()  # Invert y-axis to show depth correctly
                 if xlims:
                      axs[0].set_xlim(xlims)
+                if ylims:
+                     axs[0].set_ylim(ylims)
+
                 axs[0].set_xlabel(dataset_name)
                 axs[0].set_ylabel('Depth [m]')
                 axs[0].grid(True)
@@ -215,12 +218,15 @@ def plot_profile(profile_df, profile_id, dataset_name,
                 #axs[1].invert_yaxis()  # Invert y-axis to show depth correctly
                 if xlims:
                     axs[1].set_xlim(xlims)
+                if ylims:
+                     axs[1].set_ylim(ylims)
+
                 axs[1].set_xlabel(f'{compare_name}')  # Note the corrected syntax here
                 axs[1].set_ylabel('Depth (m)')
                 axs[1].grid(True)
                 axs[1].legend()
             else:
-                fig, axs = plt.subplots(1, 1, figsize=(16, 8))
+                fig, axs = plt.subplots(1, 1, figsize=(16, 4))
                 # Plot the original data
                 if block:    
                     axs.plot(modified_measurements, modified_depths, label=f'Profile {profile_id}')
@@ -231,6 +237,9 @@ def plot_profile(profile_df, profile_id, dataset_name,
                 #axs[0].invert_yaxis()  # Invert y-axis to show depth correctly
                 if xlims:
                      axs.set_xlim(xlims)
+                if ylims:
+                     axs.set_ylim(ylims)
+
                 axs.set_xlabel(dataset_name)
                 axs.set_ylabel('Depth [m]')
                 axs.grid(True)
@@ -246,6 +255,9 @@ def plot_profile(profile_df, profile_id, dataset_name,
                 #axs[1].invert_yaxis()  # Invert y-axis to show depth correctly
                 if xlims:
                      axs.set_xlim(xlims)
+                if ylims:
+                     axs.set_ylim(ylims)
+
                 axs.set_xlabel(f'{compare_name}')  # Note the corrected syntax here
                 axs.set_ylabel('Depth (m)')
                 axs.grid(True)
@@ -260,6 +272,9 @@ def plot_profile(profile_df, profile_id, dataset_name,
             axs.set_title(f'Profile ID {profile_label}')
             if xlims:
                 axs.set_xlim(xlims)
+            if ylims:
+                    axs.set_ylim(ylims)
+
             axs.set_xlabel(dataset_name)
             axs.set_ylabel('Depth [m]')
             axs.grid(True)
@@ -274,7 +289,7 @@ def plot_profile(profile_df, profile_id, dataset_name,
             filename = plot_name + '.pdf'
         else: 
             filename = f'Profile_ID_{profile_label}.pdf'
-        plt.savefig(filename)
+        plt.savefig(filename, dpi=300)
         return filename
     # plt.show()
 

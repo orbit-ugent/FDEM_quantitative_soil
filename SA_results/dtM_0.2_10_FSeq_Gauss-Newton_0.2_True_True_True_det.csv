@@ -1,0 +1,4 @@
+cl,percent,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,0R2,0RMSE
+0.2,10,FSeq,Gauss-Newton,0.2,True,True,True,LT,-19.97,0.228,0.268,0.16
+0.2,10,FSeq,Gauss-Newton,0.2,True,True,True,ID,-18.331,0.22,0.325,0.161
+0.2,10,FSeq,Gauss-Newton,0.2,True,True,True,LS,-20.034,0.228,0.254,0.162

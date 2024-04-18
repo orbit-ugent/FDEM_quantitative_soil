@@ -1,0 +1,4 @@
+cl,percent,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,0R2,0RMSE
+0.2,20,CS,ROPE,0.2,False,False,False,LT,-4.003,0.198,0.099,0.16
+0.2,20,CS,ROPE,0.2,False,False,False,ID,-7.458,0.252,0.767,0.085
+0.2,20,CS,ROPE,0.2,False,False,False,LS,-5.368,0.222,0.422,0.13
