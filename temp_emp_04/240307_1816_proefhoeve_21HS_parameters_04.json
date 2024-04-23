@@ -1,0 +1,26 @@
+	"EC_upper_p":"23.287671232876704",
+	"EC_lower_p":"21.575342465753454",
+	"EC_0":"0.036500000000000046",
+	"sens_pedm_upper":"0.21470588235294125",
+	"sens_pedm_lower":"-0.23174603174603142",
+	"EC_mean":"0.06562422302517006",
+	"ROPE_inv_upper_p":"6.9257329182228125",
+	"ROPE_inv_lower_p":"-8.393944582815045",
+	"input file + path": "data\calibrated\proefhoeve_21HS_transect_calibrated_rECa.csv",
+
+	"instrument": "Dualem-21HS",
+	"instrument mode": "HCP",
+	"instrument height (m)": 0.165,
+	"configurations not used in inversion": "['HCPHQP' 'PRPHQP']",
+
+	"forward model": "FSeq",
+	"optimisation method":"L-BFGS-B",
+	"regularisation": "l2",
+	"alpha parameter": "5",
+
+	"reference EC profile":"11",
+	 "constrained inversion":
+	"custom interface boundaries": "[0.3, 0.6, 1.0, 2.0, 'end']"
+
+	"custom inversion constraints (bnds)": "[(10, 55), (20, 120), (50, 335), (50, 250), (10, 50)]" 
+
