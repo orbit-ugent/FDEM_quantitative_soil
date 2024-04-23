@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from sklearn.metrics import r2_score
+from scipy.stats import pearsonr
 
 def bars_plot(feature_sets, test_errors_summary, train_errors_summary, title):
     fig, ax = plt.subplots(figsize=[7, 4])
@@ -44,8 +46,8 @@ def plot_results(df, actual, predicted, r2_val, rmse_val, scale, title):
     cbar = plt.colorbar(dummy_scatter, ax=axes)
 
     axes.plot([0, 0.6], [0, 0.6], color='black', label=f'R2 = {r2_val}; RMSE = {rmse_val}')
-    axes.set_xlabel("Observed wat")
-    axes.set_ylabel("Predicted wat")
+    axes.set_xlabel("$θ$* [%]")
+    axes.set_ylabel("Predicted $θ$* [%]")
     axes.set_title(title)
     axes.legend()
     axes.grid(True)
@@ -156,8 +158,8 @@ def plot_stoch_implementation(df, Y, Ypred, r2, profile_prefix):
     # Plot a line and label for R2
     axes.plot([0, 60], [0, 60], color='black', label=f'R2 = {r2}')
     
-    axes.set_ylabel(r'Predicted observed $\theta$ [%]', fontsize=20)
-    axes.set_xlabel(r'Observed $\theta$ [%]', fontsize=20)
+    axes.set_ylabel('Stochastic predicted $θ$* [%]', fontsize=18)
+    axes.set_xlabel('$θ$* [%]', fontsize=18)
 
     for i, (x, y) in enumerate(zip(Y, Ypred)):
         if df['depth'].iloc[i] == 50:
@@ -180,7 +182,7 @@ def plot_stoch_implementation(df, Y, Ypred, r2, profile_prefix):
     # Add the legend after all plotting is done
     axes.legend(fontsize=14)
 
-    plt.suptitle(f'{profile_prefix}', fontsize=24)
+    #plt.suptitle(f'{profile_prefix}', fontsize=24)
     axes.tick_params(axis='both', which='major', labelsize=14)
     plt.tight_layout(rect=[0, 0.03, 1, 0.99])
 
@@ -198,47 +200,41 @@ def plot_stoch_implementation(df, Y, Ypred, r2, profile_prefix):
     plt.savefig(folder_path + file_name_png)
 
     # Show the plot
-    plt.show()
+    plt.show() 
 
 
-
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-
-def plot_bars(uncal_LIN_M, cal_LIN_M, cal_rECa_M, inv_M, uncal_LIN_P, cal_LIN_P, cal_rECa_P, inv_P, target_set, approaches):
+def f7(uncal_LIN_M, cal_LIN_M, cal_rECa_M, inv_M, uncal_LIN_P, cal_LIN_P, cal_rECa_P, inv_P, target_set, approaches):
     # Setup the subplots
     fig, axes = plt.subplots(2, len(approaches), figsize=(15, 10), sharey=True, sharex=True)
-
     width = 0.2  # the width of the bars
-
-    colors = {
-        'Uncalibrated LIN': ['lightgrey', 'grey'],  # Two shades for slayed effect
-        'Calibrated LIN': ['lightblue', 'blue'],    # Two shades for slayed effect
-        'Calibrated rECa': 'blue',
-        'Inverted': 'green'
-    }
 
     for idx, approach in enumerate(approaches):
         bars_data = {
             'Uncalibrated LIN': {'P': uncal_LIN_P, 'M': uncal_LIN_M},
             'Calibrated LIN': {'P': cal_LIN_P, 'M': cal_LIN_M},
             'Calibrated rECa': {'P': cal_rECa_P, 'M': cal_rECa_M},
-            'Inverted': {'P': inv_P, 'M': inv_M}
+            'FDEM Inverted': {'P': inv_P, 'M': inv_M}
         }
 
         lab = np.arange(len(target_set))  # the label locations
         offset_multiplier = -1.5 * width  # Start offset to center bars
 
-        for i, soil_type in enumerate(['P', 'M']):
-            ax = axes[i, idx]
-            for attribute, data in bars_data.items():
-                if 'LIN' in attribute:  # Handle slayed bars for LIN features
-                    for j, color in enumerate(colors[attribute]):
-                        rects = ax.bar(lab + offset_multiplier + j*width/2, data[soil_type][approach][:5], width/2, label=f'{attribute} {j+1}', color=color)
-                else:
-                    rects = ax.bar(lab + offset_multiplier, data[soil_type][approach][:5], width, label=attribute, color=colors[attribute])
+        colors = {'Uncalibrated LIN': 'red', 'Calibrated LIN': 'navy', 'Calibrated rECa': 'navy', 'FDEM Inverted': 'green'}
+        hatches = {'Uncalibrated LIN': '///', 'Calibrated LIN': '///', 'Calibrated rECa': '', 'FDEM Inverted': ''}  # Hatching for LIN bars
 
+        for i, soil_type in enumerate(['M', 'P']):
+            ax = axes[i, idx]
+
+            for attribute, data in bars_data.items():
+                # Add hatch to LIN bars only
+                hatch = hatches.get(attribute, '')
+                hatch_color = 'white' if hatch else None  # Set hatch color to white for LIN bars
+                if i == 0:
+                    rects = ax.bar(lab + offset_multiplier, data[soil_type][approach][:5], width, label=attribute, color=colors[attribute], hatch=hatch, edgecolor=hatch_color)
+                else: 
+                    rects = ax.bar(lab + offset_multiplier, data[soil_type][approach][:5], width, color=colors[attribute], hatch=hatch, edgecolor=hatch_color)
+                    
+                # Adjust bar labels for readability and apply inclination
                 for rect in rects:
                     height = rect.get_height()
                     ax.annotate(f'{height:.2f}',
@@ -252,108 +248,40 @@ def plot_bars(uncal_LIN_M, cal_LIN_M, cal_rECa_M, inv_M, uncal_LIN_P, cal_LIN_P,
 
             offset_multiplier = -1.5 * width  # Reset for next group
 
-            if idx == 0 and i == 0:
-                ax.set_ylabel('${R^2}$', fontweight='bold', fontsize=14)
-            ax.set_xticks(lab)
-            ax.set_xticklabels(target_set, rotation=60, fontsize=12)
-            ax.set_ylim(-0.25, 0.8)  # Adjust as per your data's range
-            ax.legend(loc='upper left', ncol=1)
-
-    # Adjust layout and labels
-    fig.text(0.99, 0.9, 'Proefhoeve', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
-    fig.text(0.99, 0.45, 'Middlekerke', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
-    fig.text(0.20, 0.95, 'LT',  fontweight='bold', fontsize=14)
-    fig.text(0.50, 0.95, 'LS',  fontweight='bold', fontsize=14)
-    fig.text(0.85, 0.95, 'LT2', fontweight='bold', fontsize=14)
-
-    plt.tight_layout()
-
-    folder_path = 'output_images/'
-    file_name_png = f"S_Results_bars.png"
-    file_name_pdf = f"S_
-
-    
-
-
-def plot_bars(uncal_LIN_M, cal_LIN_M, cal_rECa_M, inv_M, uncal_LIN_P, cal_LIN_P, cal_rECa_P, inv_P, target_set, approaches):
-    # Setup the subplots
-    fig, axes = plt.subplots(2, len(approaches), figsize=(15, 10), sharey=True, sharex=True)
-    width = 0.2  # the width of the bars
-
-    for idx, approach in enumerate(approaches):
-        bars_data = {
-            'Uncalibrated LIN': {'P': uncal_LIN_P, 'M': uncal_LIN_M},
-            'Calibrated LIN': {'P': cal_LIN_P, 'M': cal_LIN_M},
-            'Calibrated rECa': {'P': cal_rECa_P, 'M': cal_rECa_M},
-            'Inverted': {'P': inv_P, 'M': inv_M}
-
-        }
-
-        lab = np.arange(len(target_set))  # the label locations
-        offset_multiplier = -1.5 * width  # Start offset to center bars
-
-        colors = {'Uncalibrated LIN': 'red', 'Calibrated LIN': 'blue', 'Calibrated rECa': 'navy', 'Inverted': 'green'}
-
-        for i, soil_type in enumerate(['P', 'M']):
-            ax = axes[i, idx]
-
-            for attribute, data in bars_data.items():
-                offset = width * multiplier
-
-                if i == 0:
-                    rects = ax.bar(lab + offset, data[soil_type][approach][:5], width, label=attribute, color=colors[attribute])
-                else: 
-                    rects = ax.bar(lab + offset, data[soil_type][approach][:5], width, color=colors[attribute])
-                    
-                # Adjust bar labels for readability and apply inclination
-                for rect in rects:
-                    height = rect.get_height()
-                    ax.annotate(f'{height:.2f}',
-                                xy=(rect.get_x() + rect.get_width() / 2, height),
-                                xytext=(0, 3),  # 3 points vertical offset
-                                textcoords="offset points",
-                                ha='center', va='bottom',
-                                rotation=60)  # Rotate the annotations for readability
-                multiplier += 1
-
             # Add some text for labels, title and custom x-axis tick labels, etc.
             if idx == 0:
-                ax.set_ylabel('${R^2}$', fontweight='bold', fontsize=14)
+                ax.set_ylabel('Median ${R^2}$', fontsize=18)
                 ax.legend(loc='upper left', ncol=1)
 
             ax.set_xticks(lab + width / 2)
-            ax.set_xticklabels(target_set, rotation=60, fontsize=14)
+            ax.set_xticklabels(target_set, fontsize=16)
             ax.set_ylim(-0.25, 0.8)  # Adjust as per your data's range
 
-            multiplier = 0
-
     # Adding labels to the plot
-    fig.text(0.99, 0.9, 'Proefhoeve', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
-    fig.text(0.99, 0.45, 'Middlekerke', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
+    fig.text(0.99, 0.9, 'Middlekerke', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
+    fig.text(0.99, 0.45, 'Proefhoeve', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
 
     fig.text(0.20, 0.95, 'LT',  fontweight='bold', fontsize=14)
     fig.text(0.50, 0.95, 'LS',  fontweight='bold', fontsize=14)
-    fig.text(0.85, 0.95, 'LT2', fontweight='bold', fontsize=14)
+    fig.text(0.85, 0.95, 'LS2', fontweight='bold', fontsize=14)
 
     plt.tight_layout()
-
     folder_path = 'output_images/'
     file_name_png = f"S_Results_bars.png"
-    file_name_pdf = f"S_Results_bars.pdf"
 
-    plt.savefig(folder_path + file_name_pdf, bbox_inches='tight')  # Adjusted bbox_inches
     plt.savefig(folder_path + file_name_png, bbox_inches='tight')  # Adjusted bbox_inches
-
     plt.show()
 
 
-def corr_plot(df, preds, targets, site):
+def f5(df, preds, targets, site):
+        # TODO remove subtitles and add top/sub soil to the x axes legend. 
+
     global_max_x = float('-inf')
 
     # Adjusting the figure size and axes
-    fig, axes = plt.subplots(len(targets), len(preds), figsize=(8, 3 * len(targets)))  # Adjust the height based on number of targets
+    fig, axes = plt.subplots(len(targets), len(preds), figsize=(10, 3 * len(targets)))  # Increased width to accommodate text
+
     axes = np.atleast_2d(axes)  # Ensure axes is always 2D
-    
     ss = 25  # Reduced size for scatter points
 
     pred_titles = {
@@ -373,35 +301,159 @@ def corr_plot(df, preds, targets, site):
             for layer_cm in [10, 50]:
                 x_data = df[df['depth'] == layer_cm][pred]
                 y_data = df[df['depth'] == layer_cm][target]
-                
+
                 label = 'Topsoil' if layer_cm == 10 else 'Subsoil'
                 ax.scatter(x_data, y_data * 100 if target == 'vwc' else y_data, s=ss, alpha=0.8, marker='o' if layer_cm == 10 else 'D', label=label)
 
-            if target_index == 0 and site != 'P':
-                ax.set_title(pred_titles.get(pred, pred), fontweight='bold', fontsize=14)
+            #if target_index == 0 and site != 'P':
+                #ax.set_title(pred_titles.get(pred, pred), fontweight='bold', fontsize=14)
             if target_index != len(targets) - 1:
                 ax.set_xticklabels([])
             if pred_index == 0:
-                ax.set_ylabel('θ* [%]' if target == 'vwc' else target, fontsize=14)
+                ax.set_ylabel('$θ$* [%]' if target == 'vwc' else target, fontsize=14)
             if pred_index != 0:
                 ax.set_yticklabels([])
 
             if site != 'M':
                 ax.set_xlabel('EC [S/m]', fontsize=12)
 
-            # Update global max x value
             global_max_x = max(global_max_x, x_data.max())
 
-            # Adjust legend to not be bold, only if site is not 'M'
-            if site != 'M':
-                ax.legend(loc='lower right', prop={'weight': 'normal'})  # Normal font weight for the legend
+        if site != 'M':
+            ax.legend(loc='lower right', prop={'weight': 'normal'})
 
-    # Set the same x-axis limits for all subplots
+            ax.set_ylim(0, 50)
+
     for ax_row in axes:
         for ax in ax_row:
             ax.set_xlim(0, global_max_x)
 
-    plt.subplots_adjust(top=0.85)
+    # Define the site name based on the site variable and position it
+    site_name = 'Middelkerke' if site == 'M' else 'Proefhoeve' if site == 'P' else ''
+    # Text is added vertically at the right outside the plot
+    fig.text(1.005, 0.7, site_name, horizontalalignment='left', verticalalignment='center', fontsize=12, fontweight='bold', rotation=270, transform=fig.transFigure)
+
+    # Adjust margins slightly to fit the text
+    plt.subplots_adjust(right=0.95)  # Slightly decrease the right margin to fit text
     plt.tight_layout(pad=0.5, w_pad=0.4, h_pad=0.8)
+
     plt.savefig('output_images/'+str(site)+'f5.png')
+    plt.show()
+
+
+
+def f6(M_df, P_df):
+    # TODO remove subtitles and add top/sub soil to the x axes legend. 
+    # Create a figure with subplots: 2 rows for M and P, 2 columns for topsoil and subsoil
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))  # Adjust the size as needed
+
+    # Loop over each dataset and depth, plotting on the appropriate axes
+    for row, (df, site) in enumerate(zip([M_df, P_df], ['M', 'P'])):
+        for col, depth in enumerate([10, 50]):
+            ax = axes[row, col]
+            
+            df_depth = df[df['depth'] == depth]
+            mxx = 300 if depth == 10 else 500  # Set the max x-axis limit
+
+            # Calculate Pearson correlation and square it for R²
+            r_inv, _ = pearsonr(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_inv'])
+            r_hp, _ = pearsonr(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_hp'])
+
+            # Scatter plots
+            ax.scatter(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_inv'], color='blue', label=f'FDEM Inv: R²={r_inv:.2f}')
+            ax.scatter(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_hp'], color='red', label=f'Soil Probe: R²={r_hp:.2f}')
+            
+            # Set axis limits and plot the 1:1 line
+            ax.set_xlim(0, mxx)
+            ax.set_ylim(0, mxx)
+            max_value = max(ax.get_xlim()[1], ax.get_ylim()[1])
+            ax.plot([0, max_value], [0, max_value], 'k--', alpha=0.7)
+            
+            # Set labels and titles
+            if row == 0:  # For the top row
+                ax.set_title(f'{"Topsoil" if depth == 10 else "Subsoil"}', fontsize=14, fontweight='bold')
+                ax.set_xlabel('')
+                ax.set_xticklabels([])
+            else:  # For the bottom row
+                ax.set_title('')
+                ax.set_xlabel('Ideal EC [mS/m]', fontsize=14)
+            ax.set_ylabel(f'{"Topsoil" if depth == 10 else "Subsoil"} EC [mS/m]', fontsize=14)
+            ax.legend(loc='lower right')
+    
+    fig.text(0.99, 0.9, 'Middlekerke', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
+    fig.text(0.99, 0.45, 'Proefhoeve', horizontalalignment='left', verticalalignment='center', fontweight='bold', fontsize=14, rotation=-90)
+
+    plt.subplots_adjust(right=0.95)  # Adjust right margin to fit text
+    plt.tight_layout(pad=0.5, w_pad=0.4, h_pad=0.8)
+
+    plt.savefig('output_images/'+str(site)+'f6.png')
+    plt.show()
+
+
+def SA_plot(file_path_all, SA_results, site, indicator):
+    # Load your DataFrame
+    dt = pd.read_csv(SA_results + file_path_all + '.csv')
+    print(dt.describe())
+
+    # Convert boolean columns to string for better plotting
+    dt['remove_coil'] = dt['remove_coil'].astype(str)
+    dt['start_avg'] = dt['start_avg'].astype(str)
+    dt['constrain'] = dt['constrain'].astype(str)
+
+    # Ordering 'Det' categories if needed
+    if 'Det' in dt.columns:
+        dt['Det'] = pd.Categorical(dt['Det'], categories=["LT", "LS", "ID"], ordered=True)
+
+    # Set the overall font size for the plots
+    plt.rcParams.update({'font.size': 15})
+
+    # List of variables for which to create boxplots
+    variables = ["cl", "percent", 'Forward_Model', 'Minimization_Method', 'Alpha', "remove_coil", "start_avg", "constrain", "Det"]
+
+    # Determine the number of rows and columns needed
+    num_vars = len(variables)
+    num_rows = 2  # Two rows: one for 0RMSE, one for RMSE
+    num_cols = num_vars  # Each column represents a variable
+
+    # Initialize the figure with calculated rows and columns
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(2*num_vars, 12), sharex='col', sharey='row')
+    axs = axs.ravel()  # Flatten the array of axes
+
+    # Loop through each variable to create boxplots for 0RMSE on the first row
+    for i, var in enumerate(variables):
+        sns.boxplot(x=var, y="0"+indicator, data=dt, ax=axs[i])
+        axs[i].grid(True, which='both', linestyle='-', linewidth=0.5, color='gray')
+        axs[i].set_xlabel('')
+        axs[i].set_title('')
+        axs[i].tick_params(axis='x', labelsize=12)  # Reduce x-axis label font size
+        if i % num_cols != 0:
+            axs[i].set_ylabel('')
+            axs[i].tick_params(axis='y', left=False, labelleft=False)
+        else:
+            axs[i].set_ylabel(r'$\theta_0$ '+indicator)
+
+    # Loop through each variable to create boxplots for RMSE on the second row
+    for i, var in enumerate(variables):
+        sns.boxplot(x=var, y=indicator, data=dt, ax=axs[i + num_cols])
+        axs[i + num_cols].grid(True, which='both', linestyle='-', linewidth=0.5, color='gray')
+        axs[i + num_cols].set_title('')
+        axs[i + num_cols].tick_params(axis='x', labelsize=12)  # Reduce x-axis label font size
+        if (i + num_cols) % num_cols != 0:
+            axs[i + num_cols].set_ylabel('')
+            axs[i + num_cols].tick_params(axis='y', left=False, labelleft=False)
+        else:
+            axs[i + num_cols].set_ylabel(r'$\theta^*$ '+ indicator)
+        if i == num_vars - 1:
+            axs[i + num_cols].set_xlabel(var)
+
+    # Adjust layout and add titles based on the site
+    fig.tight_layout()
+    if site == 'P':
+        fig.suptitle('Proefhoeve SA', fontsize=16, fontweight='bold')
+    elif site == 'M':
+        fig.suptitle('Middelkerke SA', fontsize=16, fontweight='bold')
+    fig.subplots_adjust(top=0.95, hspace=0.1)
+
+    # Save the plot
+    plt.savefig('output_images/' + file_path_all + indicator + '.png')
     plt.show()
