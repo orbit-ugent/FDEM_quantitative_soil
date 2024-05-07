@@ -19,7 +19,7 @@ sys.path.insert(0, pedophysics_code_path)
 import pedophysics
 from SA_functions import check_uniformity_and_interpolate, deterministic
 from pedophysics import predict, Soil
-from utils.spatial_utils import utm_to_epsg, get_coincident
+from utils.spatial_utils import utm_to_epsg, get_coincident, get_stats_within_radius
 from FDEM import Initialize as FDEM
 from FDEM import Modeling as Mod
 from FDEM import Properties as Prop
@@ -47,13 +47,14 @@ from scipy.stats import pearsonr
 sys.path.insert(0,'../src/') # this add the emagpy/src directory to the PATH
 
 
-def SA(site, cl, percent, FM, MinM, alpha, remove_coil, start_avg, constrain):
+def SA(site, cl, percent, sample_loc, FM, MinM, alpha, remove_coil, start_avg, constrain):
     """
     site : 'M', 'P' Proefhoeve Middelkerke
     cl: 0.2, 0.3, 0.4
     percent: 10, 20, 30
+    sample_loc: 'mean', 'closest'
     FM: 'FSeq', 'CS', 'FSlin' 
-    MinM: 'L-BFGS-B', 'CG', 'Nelder-Mead', 'ROPE'
+    MinM: 'CG', 'ROPE', 'ANN'
     alpha: 0.02, 0.07, 0.2       
     remove_coil: True, False
     start_avg: True, False
@@ -88,9 +89,6 @@ def SA(site, cl, percent, FM, MinM, alpha, remove_coil, start_avg, constrain):
         # check if correct instrument (only 421S data available for Middelkerke)
         config['instrument_code'] = 'Dualem-421S'
     
-
-
-
     ERTdatadir = 'data/ERT/'
     ERT_path = ERTdatadir + profile_prefix+'-inv-ERT-'+str(cl)+'_'+str(percent)+'.csv'
 
@@ -533,11 +531,8 @@ def SA(site, cl, percent, FM, MinM, alpha, remove_coil, start_avg, constrain):
         cal_r_EM.to_csv(cal_path, index=False)
         em_survey = cal_r_EM #### Link 01 to 02 files
 
-
-
-
     inv_folder = 'data/inverted/'
-    inv_path = inv_folder + f'{emfile_prefix}_inverted_samples_{cl}_{percent}_{FM}_{MinM}_{alpha}_{remove_coil}_{start_avg}_{constrain}.csv'
+    inv_path = inv_folder + f'{emfile_prefix}_inverted_samples_{cl}_{percent}_{sample_loc}_{FM}_{MinM}_{alpha}_{remove_coil}_{start_avg}_{constrain}.csv'
 
     if os.path.exists(inv_path):
         ds_c = pd.read_csv(inv_path)
@@ -599,7 +594,7 @@ def SA(site, cl, percent, FM, MinM, alpha, remove_coil, start_avg, constrain):
             config['reference_profile'] = 65 # ID of ERT (conductivity) profile to be used 
                                             #  to generate starting model
                                             # For proefhoeve nr 15 is used, for middelkerke 65
-            n = 5
+            n = 4
 
         # Define the interfaces depths between layers for starting model and inversion
         #           (number of layers = len(config['interface'])+1)
@@ -742,9 +737,16 @@ def SA(site, cl, percent, FM, MinM, alpha, remove_coil, start_avg, constrain):
         #                                    instrument_height=config['instrument_height'],
         #                                        instrument_orientation=config['instrument_orientation']
         #                                        )
-        em_samples = get_coincident(em_survey, samples)
-        #print('em_samples.head()', em_samples.head())
+        if sample_loc == 'closest':
+            em_samples = get_coincident(em_survey, samples)
 
+        elif sample_loc == 'mean':
+            if site == 'P':
+                em_samples = get_stats_within_radius(em_survey, samples, 1)
+
+            elif site == 'M':
+                em_samples = get_stats_within_radius(em_survey, samples, 2)
+        
         # ---------------------------------------------------------------------------- #
         # Get ERT profiles
         # ---------------- #

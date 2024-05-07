@@ -341,7 +341,6 @@ def f5(df, preds, targets, site):
     plt.show()
 
 
-
 def f6(M_df, P_df):
     # TODO remove subtitles and add top/sub soil to the x axes legend. 
     # Create a figure with subplots: 2 rows for M and P, 2 columns for topsoil and subsoil
@@ -358,10 +357,12 @@ def f6(M_df, P_df):
             # Calculate Pearson correlation and square it for R²
             r_inv, _ = pearsonr(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_inv'])
             r_hp, _ = pearsonr(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_hp'])
+            r2_inv = r_inv**2
+            r2_hp = r_hp**2
 
             # Scatter plots
-            ax.scatter(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_inv'], color='blue', label=f'FDEM Inv: R²={r_inv:.2f}')
-            ax.scatter(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_hp'], color='red', label=f'Soil Probe: R²={r_hp:.2f}')
+            ax.scatter(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_inv'], color='blue', label=f'FDEM Inv: R²={r2_inv:.2f}')
+            ax.scatter(df_depth['ideal_bulk_ec']*1000, df_depth['bulk_ec_dc_tc_hp'], color='red', label=f'Soil Probe: R²={r2_hp:.2f}')
             
             # Set axis limits and plot the 1:1 line
             ax.set_xlim(0, mxx)
@@ -386,7 +387,7 @@ def f6(M_df, P_df):
     plt.subplots_adjust(right=0.95)  # Adjust right margin to fit text
     plt.tight_layout(pad=0.5, w_pad=0.4, h_pad=0.8)
 
-    plt.savefig('output_images/'+str(site)+'f6.png')
+    plt.savefig('output_images/'+'f6.png')
     plt.show()
 
 

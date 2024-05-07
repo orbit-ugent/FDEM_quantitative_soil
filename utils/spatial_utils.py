@@ -221,12 +221,13 @@ def get_coincident(df_in, df_query):
     -------------------------
     Perform a knn-search on two dataframes to identify points that are closest
     between columns of an input dataframe (in the case below 'df'), and a query
-    dataframe (in the case below the calibration sample dataset 'd_cal').
+    dataframe.
     '''
 
     # transform dataframes to numpy arrays and perform knn search
     data_in = np.array(list(zip(df_in['x'].values,df_in['y'].values)) )
     data_query = np.array(list(zip(df_query['x'].values,df_query['y'].values)) )
+    print('data_query', data_query)
     btree = cKDTree(data_in)
     dist, idx = btree.query(data_query, k=1) # k = number of neighbors; 
                                             # idx = index of the neighbors
@@ -376,3 +377,67 @@ def nn_interpolate(df_x, df_y, df_z,
         return grid, interpolated_data
     else: 
         return grid
+    
+
+def get_stats_within_radius(df_input, df_query, radius, stat='mean'):
+    """
+    Function to find points within a specified radius from query points and calculate statistics on them.
+
+    Parameters
+    ----------
+    df_input : pd.DataFrame
+        DataFrame with the input data containing the 'x' and 'y' coordinates and other data columns.
+    
+    df_query : pd.DataFrame
+        DataFrame with the query points containing the 'x' and 'y' coordinates.
+
+    radius : float
+        Radius within which to search for points from df_input around each point in df_query.
+
+    stat : str
+        The statistic to compute for the points within the radius; valid options are 'median' or 'mean'.
+
+    Returns
+    -------
+    df_stats : pd.DataFrame
+        DataFrame with the statistics of the data columns (excluding 'x' and 'y') for points in df_input
+        within the radius of each point in df_query.
+    """
+    # Convert DataFrame columns to numpy arrays for spatial search
+    data_in = np.array(list(zip(df_input['x'], df_input['y'])))
+    data_query = np.array(list(zip(df_query['x'], df_query['y'])))
+    print('data_query', data_query)
+
+    # Create a cKDTree object for efficient spatial search
+    tree = cKDTree(data_in)
+
+    # List to collect stats DataFrames
+    stats_list = []
+
+    # Loop over each query point to find input points within the radius
+    for idx, point in enumerate(data_query):
+        print('idx, point', idx, point)
+        indices = tree.query_ball_point(point, r=radius)
+        print('indices', indices)
+        if indices:
+            relevant_points = df_input.iloc[indices]
+            if stat == 'median':
+                stats = relevant_points.median().to_dict()
+            elif stat == 'mean':
+                stats = relevant_points.mean().to_dict()
+            # Ensure the query point identifier is added to the stats
+            stats.update({'query_index': idx})
+            stats_list.append(pd.DataFrame(stats, index=[0]))
+
+    # Concatenate all stats DataFrames
+    if stats_list:
+        df_stats = pd.concat(stats_list, ignore_index=True)
+    else:
+        df_stats = pd.DataFrame()
+    
+    # Add information from df_query to the closest points DataFrame
+    df_query = df_query.reset_index(drop=True)
+    df_query = df_query.rename(columns={'x': 'x_query', 'y': 'y_query'})
+    df_radius = pd.concat([df_stats, df_query], axis=1)
+
+    return df_radius

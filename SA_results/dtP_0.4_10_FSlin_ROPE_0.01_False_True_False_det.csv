@@ -1,4 +1,0 @@
-cl,percent,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,0R2,0RMSE
-0.4,10,FSlin,ROPE,0.01,False,True,False,LT,-5.004,0.212,0.036,0.168
-0.4,10,FSlin,ROPE,0.01,False,True,False,ID,-7.828,0.26,0.777,0.081
-0.4,10,FSlin,ROPE,0.01,False,True,False,LS,-6.272,0.229,0.358,0.137
