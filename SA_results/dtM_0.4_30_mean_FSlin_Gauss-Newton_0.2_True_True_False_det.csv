@@ -1,0 +1,4 @@
+cl,percent,Samples location,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,0R2,0RMSE
+0.4,30,mean,FSlin,Gauss-Newton,0.2,True,True,False,LT,-18.638,0.222,0.371,0.148
+0.4,30,mean,FSlin,Gauss-Newton,0.2,True,True,False,ID,-17.552,0.215,0.463,0.148
+0.4,30,mean,FSlin,Gauss-Newton,0.2,True,True,False,LS,-18.602,0.221,0.378,0.149

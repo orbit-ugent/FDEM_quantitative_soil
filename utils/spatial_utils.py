@@ -227,7 +227,7 @@ def get_coincident(df_in, df_query):
     # transform dataframes to numpy arrays and perform knn search
     data_in = np.array(list(zip(df_in['x'].values,df_in['y'].values)) )
     data_query = np.array(list(zip(df_query['x'].values,df_query['y'].values)) )
-    print('data_query', data_query)
+    #print('data_query', data_query)
     btree = cKDTree(data_in)
     dist, idx = btree.query(data_query, k=1) # k = number of neighbors; 
                                             # idx = index of the neighbors
@@ -406,7 +406,7 @@ def get_stats_within_radius(df_input, df_query, radius, stat='mean'):
     # Convert DataFrame columns to numpy arrays for spatial search
     data_in = np.array(list(zip(df_input['x'], df_input['y'])))
     data_query = np.array(list(zip(df_query['x'], df_query['y'])))
-    print('data_query', data_query)
+    #print('data_query', data_query)
 
     # Create a cKDTree object for efficient spatial search
     tree = cKDTree(data_in)
@@ -416,9 +416,9 @@ def get_stats_within_radius(df_input, df_query, radius, stat='mean'):
 
     # Loop over each query point to find input points within the radius
     for idx, point in enumerate(data_query):
-        print('idx, point', idx, point)
+        #print('idx, point', idx, point)
         indices = tree.query_ball_point(point, r=radius)
-        print('indices', indices)
+        #print('indices', indices)
         if indices:
             relevant_points = df_input.iloc[indices]
             if stat == 'median':

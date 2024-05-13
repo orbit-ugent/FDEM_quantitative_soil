@@ -3,6 +3,7 @@ import numpy as np
 import seaborn as sns
 from sklearn.metrics import r2_score
 from scipy.stats import pearsonr
+import pandas as pd
 
 def bars_plot(feature_sets, test_errors_summary, train_errors_summary, title):
     fig, ax = plt.subplots(figsize=[7, 4])
