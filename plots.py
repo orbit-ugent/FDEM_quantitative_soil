@@ -392,38 +392,44 @@ def f6(M_df, P_df):
     plt.show()
 
 
-def SA_plot(file_path_all, SA_results, site, indicator):
+def SA_plot(file_path_all_, SA_results, indicator):
     # Load your DataFrame
-    dt = pd.read_csv(SA_results + file_path_all + '.csv')
-    print(dt.describe())
+    dtM = pd.read_csv(SA_results + 'dt'+'M'+'_'+file_path_all_ + '.csv')
+    dtP = pd.read_csv(SA_results + 'dt'+'P'+'_'+file_path_all_ + '.csv')
 
     # Convert boolean columns to string for better plotting
-    dt['remove_coil'] = dt['remove_coil'].astype(str)
-    dt['start_avg'] = dt['start_avg'].astype(str)
-    dt['constrain'] = dt['constrain'].astype(str)
+    dtP['remove_coil'] = dtP['remove_coil'].astype(str)
+    dtP['start_avg'] = dtP['start_avg'].astype(str)
+    dtP['constrain'] = dtP['constrain'].astype(str)
+    dtM['remove_coil'] = dtM['remove_coil'].astype(str)
+    dtM['start_avg'] = dtM['start_avg'].astype(str)
+    dtM['constrain'] = dtM['constrain'].astype(str)
 
     # Ordering 'Det' categories if needed
-    if 'Det' in dt.columns:
-        dt['Det'] = pd.Categorical(dt['Det'], categories=["LT", "LS", "ID"], ordered=True)
+    if 'Det' in dtP.columns:
+        dtP['Det'] = pd.Categorical(dtP['Det'], categories=["LT", "LS", "ID"], ordered=True)
+
+    if 'Det' in dtM.columns:
+        dtM['Det'] = pd.Categorical(dtM['Det'], categories=["LT", "LS", "ID"], ordered=True)
 
     # Set the overall font size for the plots
     plt.rcParams.update({'font.size': 15})
 
     # List of variables for which to create boxplots
-    variables = ["cl", "percent", 'Forward_Model', 'Minimization_Method', 'Alpha', "remove_coil", "start_avg", "constrain", "Det"]
+    variables = ["cl", "percent", 'Samples location', 'Forward_Model', 'Minimization_Method', 'Alpha', "remove_coil", "start_avg", "constrain", "Det"]
 
     # Determine the number of rows and columns needed
     num_vars = len(variables)
-    num_rows = 2  # Two rows: one for 0RMSE, one for RMSE
+    num_rows = 2  # Two rows: 
     num_cols = num_vars  # Each column represents a variable
 
     # Initialize the figure with calculated rows and columns
     fig, axs = plt.subplots(num_rows, num_cols, figsize=(2*num_vars, 12), sharex='col', sharey='row')
     axs = axs.ravel()  # Flatten the array of axes
 
-    # Loop through each variable to create boxplots for 0RMSE on the first row
+    # Loop through each variable to create boxplots 
     for i, var in enumerate(variables):
-        sns.boxplot(x=var, y="0"+indicator, data=dt, ax=axs[i])
+        sns.boxplot(x=var, y=indicator, data=dtM, ax=axs[i])
         axs[i].grid(True, which='both', linestyle='-', linewidth=0.5, color='gray')
         axs[i].set_xlabel('')
         axs[i].set_title('')
@@ -432,11 +438,11 @@ def SA_plot(file_path_all, SA_results, site, indicator):
             axs[i].set_ylabel('')
             axs[i].tick_params(axis='y', left=False, labelleft=False)
         else:
-            axs[i].set_ylabel(r'$\theta_0$ '+indicator)
+            axs[i].set_ylabel(r'Site 1 $\theta^*$ '+indicator)
 
-    # Loop through each variable to create boxplots for RMSE on the second row
+    # Loop through each variable to create boxplots
     for i, var in enumerate(variables):
-        sns.boxplot(x=var, y=indicator, data=dt, ax=axs[i + num_cols])
+        sns.boxplot(x=var, y=indicator, data=dtP, ax=axs[i + num_cols])
         axs[i + num_cols].grid(True, which='both', linestyle='-', linewidth=0.5, color='gray')
         axs[i + num_cols].set_title('')
         axs[i + num_cols].tick_params(axis='x', labelsize=12)  # Reduce x-axis label font size
@@ -444,18 +450,18 @@ def SA_plot(file_path_all, SA_results, site, indicator):
             axs[i + num_cols].set_ylabel('')
             axs[i + num_cols].tick_params(axis='y', left=False, labelleft=False)
         else:
-            axs[i + num_cols].set_ylabel(r'$\theta^*$ '+ indicator)
+            axs[i + num_cols].set_ylabel(r'Site 2 $\theta^*$ '+ indicator)
         if i == num_vars - 1:
             axs[i + num_cols].set_xlabel(var)
 
     # Adjust layout and add titles based on the site
     fig.tight_layout()
-    if site == 'P':
-        fig.suptitle('Proefhoeve SA', fontsize=16, fontweight='bold')
-    elif site == 'M':
-        fig.suptitle('Middelkerke SA', fontsize=16, fontweight='bold')
+    #if site == 'P':
+    #    fig.suptitle('Proefhoeve SA', fontsize=16, fontweight='bold')
+    #elif site == 'M':
+    #    fig.suptitle('Middelkerke SA', fontsize=16, fontweight='bold')
     fig.subplots_adjust(top=0.95, hspace=0.1)
 
     # Save the plot
-    plt.savefig('output_images/' + file_path_all + indicator + '.png')
+    plt.savefig('output_images/' + file_path_all_ + indicator + '.png')
     plt.show()
