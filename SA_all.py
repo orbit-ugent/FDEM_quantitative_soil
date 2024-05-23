@@ -47,14 +47,15 @@ from scipy.stats import pearsonr
 sys.path.insert(0,'../src/') # this add the emagpy/src directory to the PATH
 
 
-def SA(site, cl, percent, sample_loc, FM, MinM, alpha, remove_coil, start_avg, constrain):
+def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, start_avg, constrain):
     """
     site : 'M', 'P' Proefhoeve Middelkerke
     cl: 0.2, 0.3, 0.4
     percent: 10, 20, 30
     sample_loc: 'mean', 'closest'
+    interface: 'Observed', 'Log-defined'
     FM: 'FSeq', 'CS', 'FSlin' 
-    MinM: 'CG', 'ROPE', 'ANN'
+    MinM: 'CG', 'ROPE'
     alpha: 0.02, 0.07, 0.2       
     remove_coil: True, False
     start_avg: True, False
@@ -532,7 +533,7 @@ def SA(site, cl, percent, sample_loc, FM, MinM, alpha, remove_coil, start_avg, c
         em_survey = cal_r_EM #### Link 01 to 02 files
 
     inv_folder = 'data/inverted/'
-    inv_path = inv_folder + f'{emfile_prefix}_inverted_samples_{cl}_{percent}_{sample_loc}_{FM}_{MinM}_{alpha}_{remove_coil}_{start_avg}_{constrain}.csv'
+    inv_path = inv_folder + f'{emfile_prefix}_inverted_samples_{cl}_{percent}_{sample_loc}_{interface}_{FM}_{MinM}_{alpha}_{remove_coil}_{start_avg}_{constrain}.csv'
 
     if os.path.exists(inv_path):
         ds_c = pd.read_csv(inv_path)
@@ -600,11 +601,14 @@ def SA(site, cl, percent, sample_loc, FM, MinM, alpha, remove_coil, start_avg, c
         #           (number of layers = len(config['interface'])+1)
         config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
                                 # otherwise reference profile interfaces are used
-        config['interface'] = [0.3, 
-                            0.6, 
-                            1.0,
-                            2.0
-                                ] # depths to custom model interfaces
+        
+        if interface == 'Observed':
+            config['interface'] = [0.3, 0.6, 1.0, 2.0 ] # depths to custom model interfaces
+        
+        elif interface == 'Log-defined':
+            log_scale_array = np.geomspace(0.15, 2.0, num=10)  # Adjust num to get more or fewer points as needed
+            config['interface'] = log_scale_array
+
         # Inversion constraining
         # if constrained inversion is used, you can set custom EC bounds (and other params)
         '''
