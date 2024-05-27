@@ -394,8 +394,8 @@ def f6(M_df, P_df):
 
 def SA_plot(file_path_all_, SA_results, indicator):
     # Load your DataFrame
-    dtM = pd.read_csv(SA_results + 'dt'+'M'+'_'+file_path_all_ + '.csv')
-    dtP = pd.read_csv(SA_results + 'dt'+'P'+'_'+file_path_all_ + '.csv')
+    dtM = pd.read_csv(SA_results + 'dt' + 'M' + '_' + file_path_all_ + '.csv')
+    dtP = pd.read_csv(SA_results + 'dt' + 'P' + '_' + file_path_all_ + '.csv')
 
     # Convert boolean columns to string for better plotting
     dtP['remove_coil'] = dtP['remove_coil'].astype(str)
@@ -416,7 +416,7 @@ def SA_plot(file_path_all_, SA_results, indicator):
     plt.rcParams.update({'font.size': 15})
 
     # List of variables for which to create boxplots
-    variables = ["cl", "percent", 'Samples location', 'Forward_Model', 'Minimization_Method', 'Alpha', "remove_coil", "start_avg", "constrain", "Det"]
+    variables = ["cl", "percent", 'Samples location', 'Interface', 'Forward_Model', 'Minimization_Method', 'Alpha', "remove_coil", "start_avg", "constrain", "Det"]
 
     # Determine the number of rows and columns needed
     num_vars = len(variables)
@@ -427,41 +427,42 @@ def SA_plot(file_path_all_, SA_results, indicator):
     fig, axs = plt.subplots(num_rows, num_cols, figsize=(2*num_vars, 12), sharex='col', sharey='row')
     axs = axs.ravel()  # Flatten the array of axes
 
-    # Loop through each variable to create boxplots 
+    # Loop through each variable to create boxplots for dtM
     for i, var in enumerate(variables):
         sns.boxplot(x=var, y=indicator, data=dtM, ax=axs[i])
         axs[i].grid(True, which='both', linestyle='-', linewidth=0.5, color='gray')
-        axs[i].set_xlabel('')
-        axs[i].set_title('')
-        axs[i].tick_params(axis='x', labelsize=12)  # Reduce x-axis label font size
+        axs[i].tick_params(axis='x', labelsize=16, rotation=40)
+        axs[i].xaxis.set_label_position('top')
+        axs[i].set_xlabel(var, fontsize=14)  # Set xlabel to the top
         if i % num_cols != 0:
             axs[i].set_ylabel('')
             axs[i].tick_params(axis='y', left=False, labelleft=False)
         else:
-            axs[i].set_ylabel(r'Site 1 $\theta^*$ '+indicator)
+            axs[i].set_ylabel(r'Site 1 $\theta^*$  $RMSE$', fontsize=16)
+    ax2t = axs[-num_vars-1].twinx()
+    ax2t.set_ylabel(r'Site 1  $\theta^*$  $R^2$')
+    ax2t.set_ylim(max(dtM.R2), min(dtM.R2))
 
-    # Loop through each variable to create boxplots
+    # Loop through each variable to create boxplots for dtP, remove x-axis labels on the bottom row
     for i, var in enumerate(variables):
         sns.boxplot(x=var, y=indicator, data=dtP, ax=axs[i + num_cols])
         axs[i + num_cols].grid(True, which='both', linestyle='-', linewidth=0.5, color='gray')
-        axs[i + num_cols].set_title('')
-        axs[i + num_cols].tick_params(axis='x', labelsize=12)  # Reduce x-axis label font size
+        axs[i + num_cols].tick_params(axis='x', labelsize=14, rotation=40)
+        axs[i + num_cols].set_xlabel('')  # Remove x-labels on the bottom row
         if (i + num_cols) % num_cols != 0:
             axs[i + num_cols].set_ylabel('')
             axs[i + num_cols].tick_params(axis='y', left=False, labelleft=False)
         else:
-            axs[i + num_cols].set_ylabel(r'Site 2 $\theta^*$ '+ indicator)
-        if i == num_vars - 1:
-            axs[i + num_cols].set_xlabel(var)
+            axs[i + num_cols].set_ylabel(r'Site 2 $\theta^*$  $RMSE$', fontsize=16)
+
+    ax2b = axs[-1].twinx()
+    ax2b.set_ylabel(r'Site 2  $\theta^*$  $R^2$')
+    ax2b.set_ylim(max(dtP.R2), min(dtP.R2))
 
     # Adjust layout and add titles based on the site
     fig.tight_layout()
-    #if site == 'P':
-    #    fig.suptitle('Proefhoeve SA', fontsize=16, fontweight='bold')
-    #elif site == 'M':
-    #    fig.suptitle('Middelkerke SA', fontsize=16, fontweight='bold')
     fig.subplots_adjust(top=0.95, hspace=0.1)
 
-    # Save the plot
+    # Save and show the plot
     plt.savefig('output_images/' + file_path_all_ + indicator + '.png')
     plt.show()

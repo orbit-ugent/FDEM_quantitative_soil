@@ -1,4 +1,0 @@
-cl,percent,Samples location,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,0R2,0RMSE
-0.2,30,mean,FSeq,ROPE,0.01,True,True,False,LT,-0.506,0.065,0.006,0.199
-0.2,30,mean,FSeq,ROPE,0.01,True,True,False,ID,-2.296,0.091,-0.176,0.205
-0.2,30,mean,FSeq,ROPE,0.01,True,True,False,LS,-0.472,0.064,-0.026,0.2

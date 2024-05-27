@@ -53,7 +53,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
     cl: 0.2, 0.3, 0.4
     percent: 10, 20, 30
     sample_loc: 'mean', 'closest'
-    interface: 'Observed', 'Log-defined'
+    interface: 'observed', 'log-defined'
     FM: 'FSeq', 'CS', 'FSlin' 
     MinM: 'CG', 'ROPE'
     alpha: 0.02, 0.07, 0.2       
@@ -61,7 +61,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
     start_avg: True, False
     constrain: True, False
     """
-
+    print('SA')
     # Datetime for filename
     now = (datetime.datetime.now())
     now = now.strftime("%y%m%d_%H%M")
@@ -546,8 +546,6 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         only_samples = True
 
         # Define input datatype and source folder
-        #datafolder = 'data' # data folder
-        #datafolder_ERT = 'data/ERT'
         #em_intype = 'rec'   # 'rec' = rECa transect; 'lin' = LIN ECa transect; 
                             # 'survey' = rEC full survey
 
@@ -569,45 +567,52 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         #config['instrument_height'] = 0.165     # instrument height
         #config['instrument_orientation'] = 'HCP'    # instrument orientation
         config['regularization'] = 'l2'
+        reg_meth = config['regularization']
 
         # Remove coils for inversion?
-                                        
-        if site == 'P':
-            config['coil_n'] = [0, 1]    # indexes of coils to remove (cf. emagpy indexing)
-                                        # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
-                                        # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
 
-            config['bounds'] = [(10, 55), (20, 120), (50, 335), (50, 250), (10, 50)] 
+    n = 4                                    
+    if site == 'P':
+        config['coil_n'] = [0, 1]    # indexes of coils to remove (cf. emagpy indexing)
+                                    # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
+                                    # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
 
-            config['reference_profile'] = 15 # ID of ERT (conductivity) profile to be used 
+        config['reference_profile'] = 15 # ID of ERT (conductivity) profile to be used 
+                                    #  to generate starting model
+                                    # For proefhoeve nr 15 is used, for middelkerke 65
+
+    elif site == 'M':
+        config['coil_n'] = [4, 5]    # indexes of coils to remove (cf. emagpy indexing)
+                                    # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
+                                    # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
+
+        config['reference_profile'] = 65 # ID of ERT (conductivity) profile to be used 
                                         #  to generate starting model
                                         # For proefhoeve nr 15 is used, for middelkerke 65
 
-            n = 4
+    # Define the interfaces depths between layers for starting model and inversion
+    config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
+                            # otherwise reference profile interfaces are used
 
-        elif site == 'M':
-            config['bounds'] = [(5, 80), (50, 380), (76, 820), (100, 1000), (150, 1000)]
+    if interface == 'observed':
 
-            config['coil_n'] = [4, 5]    # indexes of coils to remove (cf. emagpy indexing)
-                                        # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
-                                        # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
+        config['interface'] = [0.3, 0.6, 1.0, 2.0 ] # depths to custom model interfaces
 
-            config['reference_profile'] = 65 # ID of ERT (conductivity) profile to be used 
-                                            #  to generate starting model
-                                            # For proefhoeve nr 15 is used, for middelkerke 65
-            n = 4
+        #if site == 'M':
+        #    config['bounds'] = [(5, 80), (50, 380), (76, 820), (100, 1000), (150, 1000)]
+        #elif site == 'P':
+        #    config['bounds'] = [(10, 55), (20, 120), (50, 335), (50, 250), (10, 50)] 
 
-        # Define the interfaces depths between layers for starting model and inversion
-        #           (number of layers = len(config['interface'])+1)
-        config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
-                                # otherwise reference profile interfaces are used
-        
-        if interface == 'Observed':
-            config['interface'] = [0.3, 0.6, 1.0, 2.0 ] # depths to custom model interfaces
-        
-        elif interface == 'Log-defined':
-            log_scale_array = np.geomspace(0.15, 2.0, num=10)  # Adjust num to get more or fewer points as needed
-            config['interface'] = log_scale_array
+    elif interface == 'log-defined':
+        logint = np.geomspace(0.15, 2, num=7)
+        logint[1:] += 0.15
+        config['interface'] = logint.tolist()
+
+        #if site == 'M':
+        #    config['bounds'] = [(5, 80), (20, 300), (30, 380), (50, 350), (76, 600), (80, 700), (100, 1000), (130, 800)]
+        #elif site == 'P':
+        #    config['bounds'] = [(10, 55), (15, 100), (20, 160), (30, 200), (50, 335), (60, 300), (75, 500), (60, 500)] 
+
 
         # Inversion constraining
         # if constrained inversion is used, you can set custom EC bounds (and other params)
@@ -632,7 +637,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
             (188.4700000000009, 1025.8167426267287)]   
         '''
 
-        config['custom_bounds'] = True
+        config['custom_bounds'] = False
 
         # !!! ---
 
@@ -649,9 +654,9 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
             print('Check if bounds and number of interfaces match')
 
         # Geographic operations (if needed)
-        c_transform = False
-        c_utmzone = '31N'
-        c_target_cs = 'EPSG:31370'
+        #c_transform = False
+        #c_utmzone = '31N'
+        #c_target_cs = 'EPSG:31370'
 
         # remove profiles at transect edges
         config['n_omit'] =  10 # number of profiles to exclude from the start
@@ -683,12 +688,12 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         em_survey = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_calibrated_rECa_{cl}_{percent}.csv')
         samplocs = os.path.join(datafolder, f'{profile_prefix}_samp_locations.csv')
 
-        if em_intype == 'rec':
-            infile = em_rec
-        elif em_intype == 'survey':
-            infile = em_survey
-        else:
-            infile = em_lin
+        #if em_intype == 'rec':
+        #    infile = em_rec
+        #elif em_intype == 'survey':
+        #    infile = em_survey
+        #else:
+        #    infile = em_lin
 
         config['FM'] = FM #'CS', 'FSlin' or 'FSeq'
         config['MinM'] = MinM
@@ -703,11 +708,13 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         config['constrain'] = constrain
 
         config['instrument_height'] = 0.165
-        instrument_orientation=config['instrument_orientation'] = 'HCP'    # instrument orientation
+        config['instrument_orientation'] = 'HCP'    # instrument orientation
         instrument = Initialize.Instrument(config['instrument_code'],
                                             instrument_height=config['instrument_height'],
                                             instrument_orientation=config['instrument_orientation']
                                             )
+
+        print('em_survey, samples:', em_survey, samples)
 
         # Column names for emapgy input
         emp_21HS = [f"HCP0.5f9000{config['instrument_height']}", 'PRP0.6f9000h0.165', 'HCP1.0f9000h0.165', 'PRP1.1f9000h0.165',	'HCP2.0f9000h0.165', 'PRP2.1f9000h0.165',
@@ -822,7 +829,6 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
             merged_df = merge_layers(all_profiles_df, new_int,'EC(mS/m)')
         else:
             merged_df = all_profiles_df
-        comparedf = merged_df.copy()
 
         # Plot original and (merged and) DC corrected reference profile
         #if config['n_int']:
@@ -871,7 +877,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         profile_data = merged_df[merged_df['ID'] == profile_id].copy()
         res_col = 'EC(mS/m)'
         depth = 'Z'
-        max_ert_depth = ert_final['Z'].abs().max()
+        #max_ert_depth = ert_final['Z'].abs().max()
 
         # 
         # ------------------------------------------------------------------------------
@@ -892,13 +898,13 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
             thick = -profile_data[depth].values
 
         con = profile_data[res_col].values/1000
-        ref_len = len(con)
-        num_layers = len(con)
-        perm = np.full(num_layers, constants.epsilon_0)
-        sus = np.zeros(num_layers)
+        #ref_len = len(con)
+        #num_layers = len(con)
+        #perm = np.full(num_layers, constants.epsilon_0)
+        #sus = np.zeros(num_layers)
 
         # # Create model instance
-        M = Initialize.Model(thick, sus[::-1], con[::-1], perm[::-1])
+        #M = Initialize.Model(thick, sus[::-1], con[::-1], perm[::-1])
 
         # ----------------------------------------------------------------------
 
@@ -1015,9 +1021,9 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
  #           start_mod = ec_stats.loc['mean'].values
 
         if config['constrain']:
-            if config['custom_bounds']:
-                bounds = config['bounds']
-            else:
+            #if config['custom_bounds']:
+            #    bounds = config['bounds']
+            #else:
                 bounds = []
                 for i, name in enumerate(ec_cols_ref):
                     if ec_stats.loc['min_sd'][name] > 0:
@@ -1030,10 +1036,15 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
                     min_max = tuple([nmin,nmax])
                     bounds.append(min_max)
                 bounds = np.round(bounds, decimals=0)
-                if not config['n_int'] and not config['custom_bounds']:
-                    bounds = bounds[1:]
+            #    if not config['n_int'] and not config['custom_bounds']:
+            #        bounds = bounds[1:]
                 print(f'autobounds = {bounds}')
 
+
+        print(f'conductivities = {len(conductivities)}')
+        #print(f'con = {con*1000}')
+        print(f'thicknesses = {len(thick)}')
+        print(f'mod_layers = {len(mod_layers)}')
     ########################################################################################################################
 
         # Perform inversion on sampling locations (to be used in pedophysical modelling)
@@ -1098,7 +1109,6 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
 
         # invert using ROPE solver (RObust Parameter Estimation)
         warnings.filterwarnings('ignore')
-        reg_meth = config['regularization']
 
         if MinM in ['MCMC', 'ROPE']:
             if config['constrain']:
@@ -1114,10 +1124,15 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
                 )
 
         else:
-            #print(f'Inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
-            s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha,regularization=reg_meth)
-        #s_rec.showOne2one()
+            if config['constrain']:
 
+                print(f'Inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
+                s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha,regularization=reg_meth,
+                            bnds=bounds)
+                
+            else : 
+                s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha,regularization=reg_meth)   
+                    
     ########################################################################################################################
 
         # 4.1: Plot the inversion results and put outcomes into a pandas dataframe

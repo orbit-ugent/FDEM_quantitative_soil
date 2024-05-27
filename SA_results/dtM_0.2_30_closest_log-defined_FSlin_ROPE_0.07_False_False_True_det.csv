@@ -1,0 +1,4 @@
+cl,percent,Samples location,Interface,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,0R2,0RMSE
+0.2,30,closest,log-defined,FSlin,ROPE,0.07,False,False,True,LT,-12.866,0.189,-0.346,0.226
+0.2,30,closest,log-defined,FSlin,ROPE,0.07,False,False,True,ID,-11.792,0.183,-0.348,0.23
+0.2,30,closest,log-defined,FSlin,ROPE,0.07,False,False,True,LS,-11.952,0.184,-0.295,0.223
