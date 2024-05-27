@@ -53,7 +53,11 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
     cl: 0.2, 0.3, 0.4
     percent: 10, 20, 30
     sample_loc: 'mean', 'closest'
+<<<<<<< HEAD
     interface: 'observed', 'log-defined'
+=======
+    interface: 'Observed', 'Log-defined'
+>>>>>>> 71aeea01e1e34ecfbe108216658ca36a97d4b298
     FM: 'FSeq', 'CS', 'FSlin' 
     MinM: 'CG', 'ROPE'
     alpha: 0.02, 0.07, 0.2       
@@ -614,6 +618,21 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         #    config['bounds'] = [(10, 55), (15, 100), (20, 160), (30, 200), (50, 335), (60, 300), (75, 500), (60, 500)] 
 
 
+<<<<<<< HEAD
+=======
+        # Define the interfaces depths between layers for starting model and inversion
+        #           (number of layers = len(config['interface'])+1)
+        config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
+                                # otherwise reference profile interfaces are used
+        
+        if interface == 'Observed':
+            config['interface'] = [0.3, 0.6, 1.0, 2.0 ] # depths to custom model interfaces
+        
+        elif interface == 'Log-defined':
+            log_scale_array = np.geomspace(0.15, 2.0, num=10)  # Adjust num to get more or fewer points as needed
+            config['interface'] = log_scale_array
+
+>>>>>>> 71aeea01e1e34ecfbe108216658ca36a97d4b298
         # Inversion constraining
         # if constrained inversion is used, you can set custom EC bounds (and other params)
         '''

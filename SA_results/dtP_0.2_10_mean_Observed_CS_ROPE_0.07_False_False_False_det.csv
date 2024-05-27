@@ -1,4 +1,10 @@
 cl,percent,Samples location,Interface,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,0R2,0RMSE
+<<<<<<< HEAD
 0.2,10,mean,observed,CS,ROPE,0.07,False,False,False,LT,-4.301,0.203,-1.207,0.27
 0.2,10,mean,observed,CS,ROPE,0.07,False,False,False,ID,-7.598,0.256,-1.711,0.312
 0.2,10,mean,observed,CS,ROPE,0.07,False,False,False,LS,-5.676,0.226,-1.596,0.296
+=======
+0.2,10,mean,Observed,CS,ROPE,0.07,False,False,False,LT,-4.301,0.203,-1.207,0.27
+0.2,10,mean,Observed,CS,ROPE,0.07,False,False,False,ID,-7.598,0.256,-1.711,0.312
+0.2,10,mean,Observed,CS,ROPE,0.07,False,False,False,LS,-5.676,0.226,-1.596,0.296
+>>>>>>> 71aeea01e1e34ecfbe108216658ca36a97d4b298

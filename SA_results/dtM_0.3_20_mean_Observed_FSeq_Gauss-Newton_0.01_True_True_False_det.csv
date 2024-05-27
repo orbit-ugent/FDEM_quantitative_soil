@@ -1,4 +1,10 @@
 cl,percent,Samples location,Interface,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,0R2,0RMSE
+<<<<<<< HEAD
 0.3,20,mean,observed,FSeq,Gauss-Newton,0.01,True,True,False,LT,-13.11,0.191,0.706,0.101
 0.3,20,mean,observed,FSeq,Gauss-Newton,0.01,True,True,False,ID,-10.827,0.175,0.821,0.08
 0.3,20,mean,observed,FSeq,Gauss-Newton,0.01,True,True,False,LS,-12.974,0.19,0.697,0.103
+=======
+0.3,20,mean,Observed,FSeq,Gauss-Newton,0.01,True,True,False,LT,-13.11,0.191,0.706,0.101
+0.3,20,mean,Observed,FSeq,Gauss-Newton,0.01,True,True,False,ID,-10.827,0.175,0.821,0.08
+0.3,20,mean,Observed,FSeq,Gauss-Newton,0.01,True,True,False,LS,-12.974,0.19,0.697,0.103
+>>>>>>> 71aeea01e1e34ecfbe108216658ca36a97d4b298
