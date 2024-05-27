@@ -61,7 +61,6 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
     start_avg: True, False
     constrain: True, False
     """
-    print('SA')
     # Datetime for filename
     now = (datetime.datetime.now())
     now = now.strftime("%y%m%d_%H%M")
@@ -582,7 +581,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
                                         # For proefhoeve nr 15 is used, for middelkerke 65
 
         elif site == 'M':
-            config['coil_n'] = [4, 5]    # indexes of coils to remove (cf. emagpy indexing)
+            config['coil_n'] = [2, 3]    # indexes of coils to remove (cf. emagpy indexing)
                                         # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
                                         # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
 
@@ -699,8 +698,6 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
                                             instrument_height=config['instrument_height'],
                                             instrument_orientation=config['instrument_orientation']
                                             )
-
-        print('em_survey, samples:', em_survey, samples)
 
         # Column names for emapgy input
         emp_21HS = [f"HCP0.5f9000{config['instrument_height']}", 'PRP0.6f9000h0.165', 'HCP1.0f9000h0.165', 'PRP1.1f9000h0.165',	'HCP2.0f9000h0.165', 'PRP2.1f9000h0.165',
@@ -1014,8 +1011,8 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
                 for i, name in enumerate(ec_cols_ref):
                     if ec_stats.loc['min_sd'][name] > 0:
                         nmin = ec_stats.loc['min_sd'][name]
-                    elif ec_stats.loc['nmin'][name] > 0:
-                        nmin = ec_stats.loc['nmin'][name]
+                    elif ec_stats.loc['min'][name] > 0:
+                        nmin = ec_stats.loc['min'][name]
                     else:
                         nmin = 10
                     nmax = ec_stats.loc['max_sd'][name]
@@ -1027,10 +1024,6 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
                 print(f'autobounds = {bounds}')
 
 
-        print(f'conductivities = {len(conductivities)}')
-        #print(f'con = {con*1000}')
-        print(f'thicknesses = {len(thick)}')
-        print(f'mod_layers = {len(mod_layers)}')
     ########################################################################################################################
 
         # Perform inversion on sampling locations (to be used in pedophysical modelling)
@@ -1099,25 +1092,23 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         if MinM in ['MCMC', 'ROPE']:
             if config['constrain']:
                 print(f'Constrained inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
-                s_rec.invert(forwardModel = FM, method=MinM, 
-                        regularization=reg_meth, alpha=alpha, njobs=-1,
-                        bnds=bounds
-                        )
+                s_rec.invert(forwardModel=FM, method=MinM, 
+                                regularization=reg_meth, alpha=alpha, njobs=-1,
+                                bnds=bounds, options={'maxiter': 100, 'disp': True})
             else:
                 print(f'Inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
                 s_rec.invert(forwardModel=FM, method=MinM, 
-                regularization=reg_meth, alpha=alpha, njobs=-1
-                )
-
+                                regularization=reg_meth, alpha=alpha, njobs=-1)
         else:
             if config['constrain']:
-
+                print(f'Constrained Inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
+                s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha, regularization=reg_meth, 
+                                bnds=bounds)
+            else: 
                 print(f'Inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
-                s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha,regularization=reg_meth,
-                            bnds=bounds)
+                s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha, regularization=reg_meth)
                 
-            else : 
-                s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha,regularization=reg_meth)   
+        #s_rec.showOne2one()  
                     
     ########################################################################################################################
 
