@@ -53,11 +53,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
     cl: 0.2, 0.3, 0.4
     percent: 10, 20, 30
     sample_loc: 'mean', 'closest'
-<<<<<<< HEAD
-    interface: 'observed', 'log-defined'
-=======
     interface: 'Observed', 'Log-defined'
->>>>>>> 71aeea01e1e34ecfbe108216658ca36a97d4b298
     FM: 'FSeq', 'CS', 'FSlin' 
     MinM: 'CG', 'ROPE'
     alpha: 0.02, 0.07, 0.2       
@@ -547,7 +543,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         '############################################# 02 INVERSION CONFIGURE INPUT ################################################')
         # User input
 
-        only_samples = True
+        #only_samples = True
 
         # Define input datatype and source folder
         #em_intype = 'rec'   # 'rec' = rECa transect; 'lin' = LIN ECa transect; 
@@ -575,86 +571,57 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
 
         # Remove coils for inversion?
 
-    n = 4                                    
-    if site == 'P':
-        config['coil_n'] = [0, 1]    # indexes of coils to remove (cf. emagpy indexing)
-                                    # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
-                                    # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
+        n = 4                                    
+        if site == 'P':
+            config['coil_n'] = [0, 1]    # indexes of coils to remove (cf. emagpy indexing)
+                                        # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
+                                        # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
 
-        config['reference_profile'] = 15 # ID of ERT (conductivity) profile to be used 
-                                    #  to generate starting model
-                                    # For proefhoeve nr 15 is used, for middelkerke 65
-
-    elif site == 'M':
-        config['coil_n'] = [4, 5]    # indexes of coils to remove (cf. emagpy indexing)
-                                    # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
-                                    # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
-
-        config['reference_profile'] = 65 # ID of ERT (conductivity) profile to be used 
+            config['reference_profile'] = 15 # ID of ERT (conductivity) profile to be used 
                                         #  to generate starting model
                                         # For proefhoeve nr 15 is used, for middelkerke 65
 
-    # Define the interfaces depths between layers for starting model and inversion
-    config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
-                            # otherwise reference profile interfaces are used
+        elif site == 'M':
+            config['coil_n'] = [4, 5]    # indexes of coils to remove (cf. emagpy indexing)
+                                        # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
+                                        # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
 
-    if interface == 'observed':
+            config['reference_profile'] = 65 # ID of ERT (conductivity) profile to be used 
+                                            #  to generate starting model
+                                            # For proefhoeve nr 15 is used, for middelkerke 65
 
-        config['interface'] = [0.3, 0.6, 1.0, 2.0 ] # depths to custom model interfaces
-
-        #if site == 'M':
-        #    config['bounds'] = [(5, 80), (50, 380), (76, 820), (100, 1000), (150, 1000)]
-        #elif site == 'P':
-        #    config['bounds'] = [(10, 55), (20, 120), (50, 335), (50, 250), (10, 50)] 
-
-    elif interface == 'log-defined':
-        logint = np.geomspace(0.15, 2, num=7)
-        logint[1:] += 0.15
-        config['interface'] = logint.tolist()
-
-        #if site == 'M':
-        #    config['bounds'] = [(5, 80), (20, 300), (30, 380), (50, 350), (76, 600), (80, 700), (100, 1000), (130, 800)]
-        #elif site == 'P':
-        #    config['bounds'] = [(10, 55), (15, 100), (20, 160), (30, 200), (50, 335), (60, 300), (75, 500), (60, 500)] 
-
-
-<<<<<<< HEAD
-=======
+        print(config['coil_n'])
         # Define the interfaces depths between layers for starting model and inversion
-        #           (number of layers = len(config['interface'])+1)
         config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
                                 # otherwise reference profile interfaces are used
-        
-        if interface == 'Observed':
-            config['interface'] = [0.3, 0.6, 1.0, 2.0 ] # depths to custom model interfaces
-        
-        elif interface == 'Log-defined':
-            log_scale_array = np.geomspace(0.15, 2.0, num=10)  # Adjust num to get more or fewer points as needed
-            config['interface'] = log_scale_array
 
->>>>>>> 71aeea01e1e34ecfbe108216658ca36a97d4b298
+        if interface == 'observed':
+
+            config['interface'] = [0.3, 0.6, 1.0, 2.0 ] # depths to custom model interfaces
+
+            #if site == 'M':
+            #    config['bounds'] = [(5, 80), (50, 380), (76, 820), (100, 1000), (150, 1000)]
+            #elif site == 'P':
+            #    config['bounds'] = [(10, 55), (20, 120), (50, 335), (50, 250), (10, 50)] 
+
+        elif interface == 'log-defined':
+            logint = np.geomspace(0.15, 2, num=7)
+            logint[1:] += 0.15
+            config['interface'] = logint.tolist()
+
+            #if site == 'M':
+            #    config['bounds'] = [(5, 80), (20, 300), (30, 380), (50, 350), (76, 600), (80, 700), (100, 1000), (130, 800)]
+            #elif site == 'P':
+            #    config['bounds'] = [(10, 55), (15, 100), (20, 160), (30, 200), (50, 335), (60, 300), (75, 500), (60, 500)] 
+
+
+            # Define the interfaces depths between layers for starting model and inversion
+            #           (number of layers = len(config['interface'])+1)
+        config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
+                                # otherwise reference profile interfaces are used
+
         # Inversion constraining
         # if constrained inversion is used, you can set custom EC bounds (and other params)
-        '''
-            config['bounds'] is the 'bnds' used in emagpy constraining
-            if you fix 2 interface and fit 3 layer EC:
-            [(layer1_ec_min, layer1_ec_max), 
-            (layer2_ec_min, layer2_ec_max), 
-            (layer3_ec_min, layer3_ec_max)]
-
-            If you fit 2 interfaces and fit 3 layer EC:
-            [(int1_min, int1_max), 
-            (int2_min, int2_max), 
-            (layer1_ec_min, layer1_ec_max), 
-            (layer2_ec_min, layer2_ec_max), 
-            (layer3_ec_min, layer3_ec_max)]
-
-            autobounds MDK:[(22.877321099166068, 83.29767890083818), 
-            (50.6150000000018, 381.79940055200086), 
-            (75.5445000000012, 819.2347232074701), 
-            (124.346000000001, 1108.1655185859772), 
-            (188.4700000000009, 1025.8167426267287)]   
-        '''
 
         config['custom_bounds'] = False
 
