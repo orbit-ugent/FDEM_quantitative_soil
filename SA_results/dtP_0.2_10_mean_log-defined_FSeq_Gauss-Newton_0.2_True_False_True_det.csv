@@ -1,4 +1,0 @@
-cl,percent,Samples location,Interface,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,0R2,0RMSE
-0.2,10,mean,log-defined,FSeq,Gauss-Newton,0.2,True,False,True,LT,-7.99,0.262,-1.708,0.308
-0.2,10,mean,log-defined,FSeq,Gauss-Newton,0.2,True,False,True,ID,-9.706,0.286,-1.964,0.333
-0.2,10,mean,log-defined,FSeq,Gauss-Newton,0.2,True,False,True,LS,-7.688,0.256,-1.692,0.312
