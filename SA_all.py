@@ -574,7 +574,6 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         if site == 'P':
             config['coil_n'] = [0, 1]    # indexes of coils to remove (cf. emagpy indexing)
                                         # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
-                                        # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
 
             config['reference_profile'] = 15 # ID of ERT (conductivity) profile to be used 
                                         #  to generate starting model
@@ -583,7 +582,6 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         elif site == 'M':
             config['coil_n'] = [2, 3]    # indexes of coils to remove (cf. emagpy indexing)
                                         # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
-                                        # removed, for Middelkerke coils 4 (HCP4.0) and 5 (PRP4.1)
 
             config['reference_profile'] = 65 # ID of ERT (conductivity) profile to be used 
                                             #  to generate starting model
@@ -906,8 +904,20 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         #    axr.plot(con*1000,-thick, '.', label='Model EC 9khz',color = 'red')
         #axr.set_title(f'Reference profile: ID {profile_id}')
 
+        if not config['n_int']:
+            start_mod = ec_stats.loc['mean'].values[1:]
+        else:
+            start_mod = ec_stats.loc['mean'].values
+
         conductivities = con*1000
         #print('conductivities', conductivities)
+
+        if config['start_avg']:
+            conductivities = start_mod
+            if len(conductivities) == len(mod_layers):
+                mod_layers = mod_layers[1:]
+            elif len(conductivities) == (len(mod_layers)+1):
+                mod_layers = mod_layers
 
         ec_cols_ref = []
         if 'end' in config['interface']:
