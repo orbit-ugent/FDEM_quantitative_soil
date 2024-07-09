@@ -17,7 +17,7 @@ parent_dir = os.path.dirname(current_dir)
 pedophysics_code_path = os.path.join(parent_dir)
 sys.path.insert(0, pedophysics_code_path)
 import pedophysics
-from SA_functions import check_uniformity_and_interpolate, deterministic
+from SA_functions import check_uniformity_and_interpolate, deterministic, r2_inv
 from pedophysics import predict, Soil
 from utils.spatial_utils import utm_to_epsg, get_coincident, get_stats_within_radius
 from FDEM import Initialize as FDEM
@@ -47,11 +47,10 @@ from scipy.stats import pearsonr
 sys.path.insert(0,'../src/') # this add the emagpy/src directory to the PATH
 
 
-def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, start_avg, constrain):
+def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start_avg, constrain):
     """
     site : 'M', 'P' Proefhoeve Middelkerke
-    cl: 0.2, 0.3, 0.4
-    percent: 10, 20, 30
+    extract: 0.5, 2.5
     sample_loc: 'mean', 'closest'
     interface: 'Observed', 'Log-defined'
     FM: 'FSeq', 'CS', 'FSlin' 
@@ -90,7 +89,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         config['instrument_code'] = 'Dualem-421S'
     
     ERTdatadir = 'data/ERT/'
-    ERT_path = ERTdatadir + profile_prefix+'-inv-ERT-'+str(cl)+'_'+str(percent)+'.csv'
+    ERT_path = ERTdatadir + profile_prefix+'-inv-ERT-'+str(extract)+'.csv'
 
     if os.path.exists(ERT_path):
         ERT_profiles = pd.read_csv(ERT_path)
@@ -120,9 +119,9 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
 
         k.setElec(elec)
         k.filterAppResist(vmin=0)
-        k.filterRecip(percent=percent) 
+        k.filterRecip() 
         k.fitErrorPwl()
-        k.createMesh('trian', cl = cl)
+        k.createMesh('trian')
 
         # invert
         k.err = True  # use fitted error in the inversion
@@ -133,7 +132,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         dfs = []
         for i in range(df.shape[0]):
             row = df.loc[i, :]
-            ie = m.df['X'].between(row['distance'] - 0.5, row['distance'] + 0.5) & m.df['Z'].gt(-5)
+            ie = m.dfm['X'].between(row['distance'] - extract, row['distance'] + extract) & m.dfm['Z'].gt(-5) # 0.5 and 2.5
             sdf = m.df[ie][['Z', 'Resistivity(ohm.m)']]
             sdf['Z'] = sdf['Z'].round(1)
             sdf['Z'] = (sdf['Z'] * 2).round(1) / 2
@@ -144,12 +143,12 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
             dfs.append(sdf)
 
         ERT_profiles = pd.concat(dfs)
-        ERT_profiles.to_csv(ERTdatadir + profile_prefix+'-inv-ERT-'+str(cl)+'_'+str(percent)+'.csv', index=False)
+        ERT_profiles.to_csv(ERTdatadir + profile_prefix+'-inv-ERT-'+str(extract)+'.csv', index=False)
 
 
 
     cal_data_dir = 'data/calibrated/'
-    cal_path = cal_data_dir + emfile_prefix+'_raw_calibrated_rECa_'+str(cl)+'_'+str(percent)+'.csv'
+    cal_path = cal_data_dir + emfile_prefix+'_raw_calibrated_rECa_'+str(extract)+'.csv'
 
     if os.path.exists(cal_path):
         em_survey = pd.read_csv(cal_path)
@@ -179,7 +178,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         Raw_emfile_prefix = 'Raw/'+emfile_prefix + '_raw'
 
         raw_em_data = os.path.join(datafolder, f'{Raw_emfile_prefix}.csv')
-        ert_file = os.path.join(datafolder, 'ERT/'+f'{profile_prefix}-inv-ERT-'+str(cl)+'_'+str(percent)+'.csv')
+        ert_file = os.path.join(datafolder, 'ERT/'+f'{profile_prefix}-inv-ERT-'+str(extract)+'.csv')
         #samplocs = os.path.join(datafolder, f'{profile_prefix}_samps.csv')
         ###
         #print('ert_file', ert_file)
@@ -532,7 +531,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         em_survey = cal_r_EM #### Link 01 to 02 files
 
     inv_folder = 'data/inverted/'
-    inv_path = inv_folder + f'{emfile_prefix}_inverted_samples_{cl}_{percent}_{sample_loc}_{interface}_{FM}_{MinM}_{alpha}_{remove_coil}_{start_avg}_{constrain}.csv'
+    inv_path = inv_folder + f'{emfile_prefix}_inverted_samples_{extract}_{sample_loc}_{interface}_{FM}_{MinM}_{alpha}_{remove_coil}_{start_avg}_{constrain}.csv'
 
     if os.path.exists(inv_path):
         ds_c = pd.read_csv(inv_path)
@@ -601,7 +600,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
             #elif site == 'P':
             #    config['bounds'] = [(10, 55), (20, 120), (50, 335), (50, 250), (10, 50)] 
 
-        elif interface == 'log-defined':
+        elif interface == 'log':
             logint = np.geomspace(0.15, 2, num=7)
             logint[1:] += 0.15
             config['interface'] = logint.tolist()
@@ -665,10 +664,10 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         inv_folder = os.path.join(datafolder, 'inverted')
         os.makedirs(inv_folder, exist_ok=True) 
         #cal_folder = os.path.join(datafolder, 'calibrated')
-        ert_file = os.path.join(ERTdatadir, f'{profile_prefix}-inv-ERT-{cl}_{percent}.csv')
-        em_rec = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_transect_calibrated_rECa_{cl}_{percent}.csv')
-        em_lin = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_transect_calibrated_{cl}_{percent}.csv')
-        em_survey = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_calibrated_rECa_{cl}_{percent}.csv')
+        ert_file = os.path.join(ERTdatadir, f'{profile_prefix}-inv-ERT-{extract}.csv')
+        em_rec = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_transect_calibrated_rECa_{extract}.csv')
+        em_lin = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_transect_calibrated_{extract}.csv')
+        em_survey = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_calibrated_rECa_{extract}.csv')
         samplocs = os.path.join(datafolder, f'{profile_prefix}_samp_locations.csv')
 
         #if em_intype == 'rec':
@@ -1119,7 +1118,13 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
                 s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha, regularization=reg_meth)
                 
         #s_rec.showOne2one()  
-                    
+
+        survey = s_rec.surveys[0]
+        dfsForward = s_rec.forward(forwardModel=FM)[0]
+        r2 = pd.DataFrame(columns=np.r_[s_rec.coils, ['all']])
+        coils = s_rec.coils
+        r2inv = r2_inv(survey, dfsForward, coils, r2)['all']    
+
     ########################################################################################################################
 
         # 4.1: Plot the inversion results and put outcomes into a pandas dataframe
@@ -1150,6 +1155,9 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         #outfile_transect = os.path.join(inv_folder, csv_filename)
         ds_inv.to_csv(inv_path)
 
+        if r2inv < 0:
+            return None
+        
     print('########################################################################################################################'
     '############################################ 03 DETERMINISTIC MODELLING ###################################################')
 
@@ -1181,7 +1189,7 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
         instrument_code = '421S'
 
     #cal_folder = os.path.join(datafolder, cal)
-    em_survey = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_calibrated_rECa_{cl}_{percent}.csv')
+    em_survey = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_calibrated_rECa_{extract}.csv')
     data_sanalysis_folder = 'data/soil_analyses'
 
     sampleprop = os.path.join(data_sanalysis_folder, f'{profile_prefix}_soil_analysis.csv')
@@ -1330,8 +1338,22 @@ def SA(site, cl, percent, sample_loc, interface, FM, MinM, alpha, remove_coil, s
     #Dresults = {}
     target = 'vwc'
 
-    DR2_LT, DRMSE_LT, DR2_ID, DRMSE_ID, DR2_LS, DRMSE_LS, DR2_10, DRMSE_10, DR2_50, DRMSE_50, D0R2_LT, D0RMSE_LT, D0R2_ID, D0RMSE_ID, D0R2_LS, D0RMSE_LS = deterministic(feature, target, ds, Y0, f_ec, clay_mean, bd_mean, water_ec_hp_mean_t, t_mean_conv, clay_10cm, bd_10cm, water_ec_hp_10cm_t, t_10cm_conv, clay_50cm, bd_50cm, water_ec_hp_50cm_t, t_50cm_conv, t_conv)
+    DR2_LT, DRMSE_LT, DR2_ID, DRMSE_ID, DR2_LS, DRMSE_LS, DR2_10, DRMSE_10, DR2_50, DRMSE_50, D0R2_LT, D0RMSE_LT, D0R2_ID, D0RMSE_ID, D0R2_LS, D0RMSE_LS, MAE_LS, MAE_LT, MAE_10, MAE_50, MAE_ID, STD_LS, STD_LT, STD_10, STD_50, STD_ID = deterministic(feature, target, ds, Y0, f_ec, clay_mean, bd_mean, water_ec_hp_mean_t, t_mean_conv, clay_10cm, bd_10cm, water_ec_hp_10cm_t, t_10cm_conv, clay_50cm, bd_50cm, water_ec_hp_50cm_t, t_50cm_conv, t_conv)
 
     round_n = 3
 
-    return round(DR2_LT, round_n), round(DRMSE_LT, round_n), round(DR2_ID, round_n), round(DRMSE_ID, round_n), round(DR2_LS, round_n), round(DRMSE_LS, round_n), round(DR2_10, round_n), round(DRMSE_10, round_n), round(DR2_50, round_n), round(DRMSE_50, round_n), round(D0R2_LT, round_n), round(D0RMSE_LT, round_n), round(D0R2_ID, round_n), round(D0RMSE_ID, round_n), round(D0R2_LS, round_n), round(D0RMSE_LS, round_n)
+    return round(DR2_LT, round_n), round(DRMSE_LT, round_n), 
+            round(DR2_ID, round_n), round(DRMSE_ID, round_n), 
+            round(DR2_LS, round_n), round(DRMSE_LS, round_n), 
+            round(DR2_10, round_n), round(DRMSE_10, round_n), 
+            round(DR2_50, round_n), round(DRMSE_50, round_n), 
+            round(D0R2_LT, round_n), round(D0RMSE_LT, round_n), 
+            round(D0R2_ID, round_n), round(D0RMSE_ID, round_n), 
+            round(D0R2_LS, round_n), round(D0RMSE_LS, round_n), 
+    
+            round(MAE_LT, round_n), round(STD_LT, round_n),
+            round(MAE_ID, round_n), round(STD_ID, round_n)
+            round(MAE_LS, round_n), round(STD_LS, round_n), 
+    
+            round(MAE_10, round_n), round(STD_10, round_n), 
+            round(MAE_50, round_n), round(STD_50, round_n),  r2inv

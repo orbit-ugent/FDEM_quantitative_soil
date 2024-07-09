@@ -7,7 +7,20 @@ from PM import *
 
 from scipy.interpolate import interp1d
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_absolute_error
+
+
+def r2_inv(survey, dfsForward, coils, r2):
+
+    for coil in coils:
+        obsECa = survey.df[coil].values
+        simECa = dfsForward[coil].values
+        r2.loc[0, coil] = r2_score(simECa, obsECa)
+    obsECa = survey.df[coils].values.flatten()
+    simECa = dfsForward[coils].values.flatten()
+    r2.loc[0, 'all'] = r2_score(simECa, obsECa)
+    return r2
+
 
 def check_uniformity_and_interpolate(df, profile_id_col, depth_col, *data_cols):
     # Initialize a DataFrame to store both interpolated and non-interpolated profiles
@@ -82,11 +95,11 @@ def deterministic(feature, target, df, Y0, f_ec, clay_mean, bd_mean, water_ec_hp
     Y_layer_50 = df.loc[idx_layer_50, target].values
 
     # Preallocate lists
-    DR2_LS, DRMSE_LS = [None] * iters, [None] * iters
-    DR2_LT, DRMSE_LT = [None] * iters, [None] * iters
-    DR2_10, DRMSE_10 = [None] * iters, [None] * iters
-    DR2_50, DRMSE_50 = [None] * iters, [None] * iters
-    DR2_ID, DRMSE_ID, ypred_ID_ = [None] * iters, [None] * iters, [None] * iters
+    DR2_LS, MAE_LS, STD_LS, DRMSE_LS = [None] * iters, [None] * iters, [None] * iters, [None] * iters
+    DR2_LT, MAE_LT, STD_LT, DRMSE_LT = [None] * iters, [None] * iters, [None] * iters, [None] * iters
+    DR2_10, MAE_10, STD_10, DRMSE_10 = [None] * iters, [None] * iters, [None] * iters, [None] * iters
+    DR2_50, MAE_50, STD_50, DRMSE_50 = [None] * iters, [None] * iters, [None] * iters, [None] * iters
+    DR2_ID, MAE_ID, STD_ID, DRMSE_ID, ypred_ID_ = [None] * iters, [None] * iters, [None] * iters, [None] * iters, [None] * iters
 
     D0R2_LS, D0RMSE_LS = [None] * iters, [None] * iters
     D0R2_LT, D0RMSE_LT = [None] * iters, [None] * iters
@@ -121,6 +134,8 @@ def deterministic(feature, target, df, Y0, f_ec, clay_mean, bd_mean, water_ec_hp
         DRMSE_LT[i] = round(RMSE(y_test, Dypred_LT), round_n)
         D0R2_LT[i] = round(r2_score(Y0_test, Dypred_LT), round_n)
         D0RMSE_LT[i] = round(RMSE(Y0_test, Dypred_LT), round_n)
+        MAE_LT[i] = round(mean_absolute_error(y_test, Dypred_LT), round_n)
+        STD_LT[i] = round(np.std(Dypred_LT), round_n)
 
         ### Predict using 10 cm layer
         layer_10 = Soil( 
@@ -134,6 +149,8 @@ def deterministic(feature, target, df, Y0, f_ec, clay_mean, bd_mean, water_ec_hp
         Dypred_10 = predict.Water(layer_10)
         DR2_10[i] = round(r2_score(y_test10, Dypred_10), round_n)
         DRMSE_10[i] = round(RMSE(y_test10, Dypred_10), round_n)
+        MAE_10[i] = round(mean_absolute_error(y_test, Dypred_10), round_n)
+        STD_10[i] = round(np.std(Dypred_10), round_n)
 
         ### Predict using 50 cm layer
         layer_50 = Soil( 
@@ -147,12 +164,17 @@ def deterministic(feature, target, df, Y0, f_ec, clay_mean, bd_mean, water_ec_hp
         Dypred_50 = predict.Water(layer_50)
         DR2_50[i] = round(r2_score(y_test50, Dypred_50), round_n)
         DRMSE_50[i] = round(RMSE(y_test50, Dypred_50), round_n)
+        MAE_50[i] = round(mean_absolute_error(y_test, Dypred_50), round_n)
+        STD_50[i] = round(np.std(Dypred_50), round_n)
+
 
         ### Stochastic modelling for layers separate. 
         ### This is a combination of both layer's prediction
         Dypred_LS = np.concatenate((Dypred_10, Dypred_50))
         DR2_LS[i] = round(r2_score(y_test, Dypred_LS), round_n)
         DRMSE_LS[i] = round(RMSE(y_test, Dypred_LS), round_n)
+        MAE_LS[i] = round(mean_absolute_error(y_test, Dypred_LS), round_n)
+        STD_LS[i] = round(np.std(Dypred_LS), round_n)
         D0R2_LS[i] = round(r2_score(Y0_test, Dypred_LS), round_n)
         D0RMSE_LS[i] = round(RMSE(Y0_test, Dypred_LS), round_n)
 
@@ -167,11 +189,15 @@ def deterministic(feature, target, df, Y0, f_ec, clay_mean, bd_mean, water_ec_hp
                     water_ec = filtered_df['water_ec_hp_t'].values,
                     temperature = filtered_df['temp'].values+t_conv
                     )
+        
         Dypred_ID = predict.Water(ID)
         ypred_ID_[i] = Dypred_ID
         DR2_ID[i] = round(r2_score(y_test, Dypred_ID), round_n)
         DRMSE_ID[i] = round(RMSE(y_test, Dypred_ID), round_n)
+        MAE_ID[i] = round(mean_absolute_error(y_test, Dypred_ID), round_n)
+        STD_ID[i] = round(np.std(Dypred_ID), round_n)
         D0R2_ID[i] = round(r2_score(Y0_test, Dypred_ID), round_n)
         D0RMSE_ID[i] = round(RMSE(Y0_test, Dypred_ID), round_n)
 
-    return np.median(DR2_LT), np.median(DRMSE_LT), np.median(DR2_ID), np.median(DRMSE_ID), np.median(DR2_LS), np.median(DRMSE_LS), np.median(DR2_10), np.median(DRMSE_10), np.median(DR2_50), np.median(DRMSE_50), np.median(D0R2_LT), np.median(D0RMSE_LT), np.median(D0R2_ID), np.median(D0RMSE_ID), np.median(D0R2_LS), np.median(D0RMSE_LS)
+
+    return np.median(DR2_LT), np.median(DRMSE_LT), np.median(DR2_ID), np.median(DRMSE_ID), np.median(DR2_LS), np.median(DRMSE_LS), np.median(DR2_10), np.median(DRMSE_10), np.median(DR2_50), np.median(DRMSE_50), np.median(D0R2_LT), np.median(D0RMSE_LT), np.median(D0R2_ID), np.median(D0RMSE_ID), np.median(D0R2_LS), np.median(D0RMSE_LS), np.median(MAE_LS), np.median(MAE_LT), np.median(MAE_10), np.median(MAE_50), np.median(MAE_ID), np.median(STD_LS), np.median(STD_LT), np.median(STD_10), np.median(STD_50), np.median(STD_ID)
