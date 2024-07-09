@@ -586,7 +586,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
                                             #  to generate starting model
                                             # For proefhoeve nr 15 is used, for middelkerke 65
 
-        print(config['coil_n'])
+        #print(config['coil_n'])
         # Define the interfaces depths between layers for starting model and inversion
         config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
                                 # otherwise reference profile interfaces are used
@@ -728,6 +728,8 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         #                                    instrument_height=config['instrument_height'],
         #                                        instrument_orientation=config['instrument_orientation']
         #                                        )
+
+        print('all imported')
         if sample_loc == 'closest':
             em_samples = get_coincident(em_survey, samples)
 
@@ -764,6 +766,8 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
 
         ert_final[dataset_name] = (1/ert_final[dataset_name])
         dc_corr = ert_final.copy()
+
+        print('to predict')
         dc_corr[dataset_name] = predict.BulkEC(Soil(
                                                         frequency_ec = 9000,
                                                         bulk_ec_dc = dc_corr[dataset_name].values
@@ -800,6 +804,8 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
             raise KeyboardInterrupt
         else:
             profile_id = config['reference_profile']
+
+        print('profile_id ', profile_id )
 
         # Create new layer configuration for prior model based on ERT data
         if config['n_int']:
@@ -846,8 +852,9 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
                 models[profile_id] = M
             return models
 
-        models = generate_forward_model_inputs(merged_df, 'ID', 'Z', 'EC(mS/m)')
 
+        models = generate_forward_model_inputs(merged_df, 'ID', 'Z', 'EC(mS/m)')
+        print('fw model generated')
     ########################################################################################################################
 
         # 
@@ -877,7 +884,10 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         else:
             thick = -profile_data[depth].values
 
+        print('thick ', thick )
         con = profile_data[res_col].values/1000
+        print('con', con)
+
         #ref_len = len(con)
         #num_layers = len(con)
         #perm = np.full(num_layers, constants.epsilon_0)
@@ -891,7 +901,9 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         dataset_name = 'EC(mS/m)'
         layers_interfaces = np.cumsum(models[profile_id].thick)
         layers_interfaces = np.insert(layers_interfaces, 0, 0)
+        print('layers_interfaces', layers_interfaces)
         profile_data = ert_final[ert_final['ID'] == profile_id]
+        print('profile_data', profile_data)
 
         #fig, axr = plt.subplots(figsize=(5, 10))
         #axr.set_xlabel('EC [mS/m]')
@@ -902,14 +914,17 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         #else:
         #    axr.plot(con*1000,-thick, '.', label='Model EC 9khz',color = 'red')
         #axr.set_title(f'Reference profile: ID {profile_id}')
-
+        print('ec_stats', ec_stats)
+        
         if not config['n_int']:
+
             start_mod = ec_stats.loc['mean'].values[1:]
         else:
             start_mod = ec_stats.loc['mean'].values
 
+        print('start_mod ', start_mod )
         conductivities = con*1000
-        #print('conductivities', conductivities)
+        print('conductivities', conductivities)
 
         if config['start_avg']:
             conductivities = start_mod
@@ -1012,6 +1027,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
 #            maxstat = np.flipud(ec_stats.loc['max'].values)
  #           start_mod = ec_stats.loc['mean'].values
 
+        print('before constrain')
         if config['constrain']:
             #if config['custom_bounds']:
             #    bounds = config['bounds']
@@ -1032,7 +1048,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
             #        bounds = bounds[1:]
                 print(f'autobounds = {bounds}')
 
-
+        print('bounds', bounds)
     ########################################################################################################################
 
         # Perform inversion on sampling locations (to be used in pedophysical modelling)
@@ -1042,7 +1058,6 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
 
         # if config['n_omit'] != 0:
         #     unique_ids = em_input['ID'].unique()
-        #     print(unique_ids)
         #     selected_ids = unique_ids[config['n_omit']:-config['n_omit']]
         #     em_input = em_input.loc[em_input['ID'].isin(selected_ids)]
         temp_dir = 'temp_emp' 
@@ -1072,6 +1087,8 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         s_rec.createSurvey(temp_file)
         #t_rec.rollingMean(window=12)
 
+        print('before setInit')
+
         s_rec.setInit(
             depths0=np.flipud(mod_layers),
             conds0=conductivities
@@ -1081,6 +1098,8 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         #print(np.flipud(mod_layers), conductivities)
 
         #shutil.rmtree(temp_dir)
+
+        print('setInit')
 
         if config['remove_coil']:
             if type(config['coil_n']) == list:
@@ -1124,7 +1143,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         r2 = pd.DataFrame(columns=np.r_[s_rec.coils, ['all']])
         coils = s_rec.coils
         r2inv = r2_inv(survey, dfsForward, coils, r2)['all']    
-
+        print('r2inv', r2inv)
     ########################################################################################################################
 
         # 4.1: Plot the inversion results and put outcomes into a pandas dataframe
@@ -1342,18 +1361,4 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
 
     round_n = 3
 
-    return round(DR2_LT, round_n), round(DRMSE_LT, round_n), 
-            round(DR2_ID, round_n), round(DRMSE_ID, round_n), 
-            round(DR2_LS, round_n), round(DRMSE_LS, round_n), 
-            round(DR2_10, round_n), round(DRMSE_10, round_n), 
-            round(DR2_50, round_n), round(DRMSE_50, round_n), 
-            round(D0R2_LT, round_n), round(D0RMSE_LT, round_n), 
-            round(D0R2_ID, round_n), round(D0RMSE_ID, round_n), 
-            round(D0R2_LS, round_n), round(D0RMSE_LS, round_n), 
-    
-            round(MAE_LT, round_n), round(STD_LT, round_n),
-            round(MAE_ID, round_n), round(STD_ID, round_n)
-            round(MAE_LS, round_n), round(STD_LS, round_n), 
-    
-            round(MAE_10, round_n), round(STD_10, round_n), 
-            round(MAE_50, round_n), round(STD_50, round_n),  r2inv
+    return round(DR2_LT, round_n), round(DRMSE_LT, round_n), round(DR2_ID, round_n), round(DRMSE_ID, round_n), round(DR2_LS, round_n), round(DRMSE_LS, round_n), round(DR2_10, round_n), round(DRMSE_10, round_n), round(DR2_50, round_n), round(DRMSE_50, round_n), round(D0R2_LT, round_n), round(D0RMSE_LT, round_n), round(D0R2_ID, round_n), round(D0RMSE_ID, round_n), round(D0R2_LS, round_n), round(D0RMSE_LS, round_n), round(MAE_LT, round_n), round(STD_LT, round_n),round(MAE_ID, round_n), round(STD_ID, round_n), round(MAE_LS, round_n), round(STD_LS, round_n), round(MAE_10, round_n), round(STD_10, round_n), round(MAE_50, round_n), round(STD_50, round_n),  r2inv
