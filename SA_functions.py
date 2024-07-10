@@ -149,7 +149,7 @@ def deterministic(feature, target, df, Y0, f_ec, clay_mean, bd_mean, water_ec_hp
         Dypred_10 = predict.Water(layer_10)
         DR2_10[i] = round(r2_score(y_test10, Dypred_10), round_n)
         DRMSE_10[i] = round(RMSE(y_test10, Dypred_10), round_n)
-        MAE_10[i] = round(mean_absolute_error(y_test, Dypred_10), round_n)
+        MAE_10[i] = round(mean_absolute_error(y_test10, Dypred_10), round_n)
         STD_10[i] = round(np.std(Dypred_10), round_n)
 
         ### Predict using 50 cm layer
@@ -164,7 +164,7 @@ def deterministic(feature, target, df, Y0, f_ec, clay_mean, bd_mean, water_ec_hp
         Dypred_50 = predict.Water(layer_50)
         DR2_50[i] = round(r2_score(y_test50, Dypred_50), round_n)
         DRMSE_50[i] = round(RMSE(y_test50, Dypred_50), round_n)
-        MAE_50[i] = round(mean_absolute_error(y_test, Dypred_50), round_n)
+        MAE_50[i] = round(mean_absolute_error(y_test50, Dypred_50), round_n)
         STD_50[i] = round(np.std(Dypred_50), round_n)
 
 
