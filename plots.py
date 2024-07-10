@@ -446,12 +446,6 @@ def f6(d1, d2, targets, preds):
             ax.grid(True, which='both', linestyle='--')
             ax.set_box_aspect(1)
 
-            #y_data_alldepths =  df[targets[0]]
-            #print('y_data_alldepths', y_data_alldepths)
-            #y_pred = np.full_like(y_data_alldepths, y_data_alldepths.mean())
-            # Calculate RMSE
-            #rmse = np.sqrt(mean_squared_error(y_data_alldepths, y_pred))
-            
             for layer_cm, marker in zip([10, 50], ['o', '^']):
                 x_data = df[df['depth'] == layer_cm][pred] * 1000
                 y_data = df[df['depth'] == layer_cm][targets[0]]
@@ -462,9 +456,6 @@ def f6(d1, d2, targets, preds):
                                      label='Topsoil' if layer_cm == 10 else 'Subsoil',
                                      vmin=0, vmax=50)
                 scatter_plots.append(scatter)
-
-                # Display RMSE on the plot for both rows
-                #ax.text(0.05, 0.85, f'RMSE: {rmse:.2f}', transform=ax.transAxes, va="center", fontsize=12, color='red')
 
                 if not x_data.empty:
                     global_max_x = max(global_max_x, x_data.max())
@@ -480,6 +471,10 @@ def f6(d1, d2, targets, preds):
                 ax.set_yticklabels([])
 
             ax.set_ylim(0, 50)
+
+            # Add legend only to the upper left subplot
+            if row_index == 0 and pred_index == 0:
+                ax.legend(loc='upper right')
 
     for ax_row in axes:
         for ax in ax_row:
