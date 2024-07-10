@@ -914,7 +914,12 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         #else:
         #    axr.plot(con*1000,-thick, '.', label='Model EC 9khz',color = 'red')
         #axr.set_title(f'Reference profile: ID {profile_id}')
-        print('ec_stats', ec_stats)
+        #print('ec_stats', ec_stats)
+        
+        ec_stats = ec_df.describe().loc[['min', 'max', 'std', '50%', 'mean']]
+        ec_stats.rename(index={'50%': 'median'}, inplace=True)
+        ec_stats.loc['min_sd'] = ec_stats.loc['min'] - 2 * ec_stats.loc['std']
+        ec_stats.loc['max_sd'] = ec_stats.loc['max'] + 2 * ec_stats.loc['std']
         
         if not config['n_int']:
 
@@ -1005,11 +1010,6 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
             #     a = a +1
 
         ec_df.reset_index(drop=True, inplace=True)
-
-        ec_stats = ec_df.describe().loc[['min', 'max', 'std', '50%', 'mean']]
-        ec_stats.rename(index={'50%': 'median'}, inplace=True)
-        ec_stats.loc['min_sd'] = ec_stats.loc['min'] - 2 * ec_stats.loc['std']
-        ec_stats.loc['max_sd'] = ec_stats.loc['max'] + 2 * ec_stats.loc['std']
 
         #position = -thick
 
