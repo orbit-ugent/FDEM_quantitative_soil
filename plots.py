@@ -368,7 +368,7 @@ def SA_plot(file_path_all_, SA_results, indicator):
     plt.rcParams.update({'font.size': 15})
 
     # List of variables for which to create boxplots
-    variables = ["cl", "percent", 'Samples location', 'Interface', 'Forward_Model', 'Minimization_Method', 'Alpha', "remove_coil", "start_avg", "constrain", "Det"]
+    variables = ["Extract", 'Samples location', 'Interface', 'Forward_Model', 'Minimization_Method', 'Alpha', "remove_coil", "start_avg", "constrain", "Det"]
 
     # Determine the number of rows and columns needed
     num_vars = len(variables)
@@ -394,9 +394,9 @@ def SA_plot(file_path_all_, SA_results, indicator):
             axs[i].tick_params(axis='y', left=False, labelleft=False)
         else:
             axs[i].set_ylabel(r'Site 1. Median $RMSE$ of $\theta$', fontsize=16)
-    ax2t = axs[-num_vars-1].twinx()
-    ax2t.set_ylabel(r'Site 1. Median $R^2$ of $\theta$')
-    ax2t.set_ylim(max(dtM.R2), min(dtM.R2))
+    #ax2t = axs[-num_vars-1].twinx()
+    #ax2t.set_ylabel(r'Site 1. Median $R^2$ of $\theta$')
+    #ax2t.set_ylim(max(dtM.R2), min(dtM.R2))
 
     # Loop through each variable to create boxplots for dtP, remove x-axis labels on the bottom row
     for i, var in enumerate(variables):
@@ -413,9 +413,9 @@ def SA_plot(file_path_all_, SA_results, indicator):
         else:
             axs[i + num_cols].set_ylabel(r'Site 2. Median $RMSE$ of $\theta$', fontsize=16)
 
-    ax2b = axs[-1].twinx()
-    ax2b.set_ylabel(r'Site 2. Median $R^2$ of $\theta$')
-    ax2b.set_ylim(max(dtP.R2), min(dtP.R2))
+    #ax2b = axs[-1].twinx()
+    #ax2b.set_ylabel(r'Site 2. Median $R^2$ of $\theta$')
+    #ax2b.set_ylim(max(dtP.R2), min(dtP.R2))
 
     # Adjust layout and add titles based on the site
     fig.tight_layout()
@@ -446,12 +446,6 @@ def f6(d1, d2, targets, preds):
             ax.grid(True, which='both', linestyle='--')
             ax.set_box_aspect(1)
 
-            #y_data_alldepths =  df[targets[0]]
-            #print('y_data_alldepths', y_data_alldepths)
-            #y_pred = np.full_like(y_data_alldepths, y_data_alldepths.mean())
-            # Calculate RMSE
-            #rmse = np.sqrt(mean_squared_error(y_data_alldepths, y_pred))
-            
             for layer_cm, marker in zip([10, 50], ['o', '^']):
                 x_data = df[df['depth'] == layer_cm][pred] * 1000
                 y_data = df[df['depth'] == layer_cm][targets[0]]
@@ -462,9 +456,6 @@ def f6(d1, d2, targets, preds):
                                      label='Topsoil' if layer_cm == 10 else 'Subsoil',
                                      vmin=0, vmax=50)
                 scatter_plots.append(scatter)
-
-                # Display RMSE on the plot for both rows
-                #ax.text(0.05, 0.85, f'RMSE: {rmse:.2f}', transform=ax.transAxes, va="center", fontsize=12, color='red')
 
                 if not x_data.empty:
                     global_max_x = max(global_max_x, x_data.max())
@@ -480,6 +471,10 @@ def f6(d1, d2, targets, preds):
                 ax.set_yticklabels([])
 
             ax.set_ylim(0, 50)
+
+            # Add legend only to the upper left subplot
+            if row_index == 0 and pred_index == 0:
+                ax.legend(loc='upper right')
 
     for ax_row in axes:
         for ax in ax_row:
