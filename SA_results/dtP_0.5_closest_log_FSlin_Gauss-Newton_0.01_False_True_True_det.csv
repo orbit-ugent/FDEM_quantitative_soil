@@ -1,0 +1,4 @@
+Extract,Samples location,Interface,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,MAE,STD,0R2,0RMSE,R2_INV
+0.5,closest,log,FSlin,Gauss-Newton,0.01,False,True,True,LT,-9.145,0.269,0.234,0.216,0.217,0.15,0.9690754280454358
+0.5,closest,log,FSlin,Gauss-Newton,0.01,False,True,True,ID,-13.477,0.317,0.298,0.25,0.348,0.134,0.9690754280454358
+0.5,closest,log,FSlin,Gauss-Newton,0.01,False,True,True,LS,-10.179,0.282,0.246,0.232,0.044,0.164,0.9690754280454358

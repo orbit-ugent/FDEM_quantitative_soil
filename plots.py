@@ -368,7 +368,7 @@ def SA_plot(file_path_all_, SA_results, indicator):
     plt.rcParams.update({'font.size': 15})
 
     # List of variables for which to create boxplots
-    variables = ["cl", "percent", 'Samples location', 'Interface', 'Forward_Model', 'Minimization_Method', 'Alpha', "remove_coil", "start_avg", "constrain", "Det"]
+    variables = ["Extract", 'Samples location', 'Interface', 'Forward_Model', 'Minimization_Method', 'Alpha', "remove_coil", "start_avg", "constrain", "Det"]
 
     # Determine the number of rows and columns needed
     num_vars = len(variables)
@@ -394,9 +394,9 @@ def SA_plot(file_path_all_, SA_results, indicator):
             axs[i].tick_params(axis='y', left=False, labelleft=False)
         else:
             axs[i].set_ylabel(r'Site 1. Median $RMSE$ of $\theta$', fontsize=16)
-    ax2t = axs[-num_vars-1].twinx()
-    ax2t.set_ylabel(r'Site 1. Median $R^2$ of $\theta$')
-    ax2t.set_ylim(max(dtM.R2), min(dtM.R2))
+    #ax2t = axs[-num_vars-1].twinx()
+    #ax2t.set_ylabel(r'Site 1. Median $R^2$ of $\theta$')
+    #ax2t.set_ylim(max(dtM.R2), min(dtM.R2))
 
     # Loop through each variable to create boxplots for dtP, remove x-axis labels on the bottom row
     for i, var in enumerate(variables):
@@ -413,9 +413,9 @@ def SA_plot(file_path_all_, SA_results, indicator):
         else:
             axs[i + num_cols].set_ylabel(r'Site 2. Median $RMSE$ of $\theta$', fontsize=16)
 
-    ax2b = axs[-1].twinx()
-    ax2b.set_ylabel(r'Site 2. Median $R^2$ of $\theta$')
-    ax2b.set_ylim(max(dtP.R2), min(dtP.R2))
+    #ax2b = axs[-1].twinx()
+    #ax2b.set_ylabel(r'Site 2. Median $R^2$ of $\theta$')
+    #ax2b.set_ylim(max(dtP.R2), min(dtP.R2))
 
     # Adjust layout and add titles based on the site
     fig.tight_layout()
