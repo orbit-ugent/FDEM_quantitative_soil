@@ -1,4 +1,0 @@
-Extract,Samples location,Interface,Forward_Model,Minimization_Method,Alpha,remove_coil,start_avg,constrain,Det,R2,RMSE,MAE,STD,0R2,0RMSE,R2_INV
-2.5,mean,log,CS,ROPE,0.01,False,True,False,LT,-4.674,0.208,0.181,0.148,0.322,0.148,0.0186820964409718
-2.5,mean,log,CS,ROPE,0.01,False,True,False,ID,-8.736,0.27,0.246,0.17,0.64,0.103,0.0186820964409718
-2.5,mean,log,CS,ROPE,0.01,False,True,False,LS,-6.782,0.248,0.209,0.178,0.496,0.126,0.0186820964409718

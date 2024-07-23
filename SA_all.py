@@ -17,7 +17,7 @@ parent_dir = os.path.dirname(current_dir)
 pedophysics_code_path = os.path.join(parent_dir)
 sys.path.insert(0, pedophysics_code_path)
 import pedophysics
-from SA_functions import check_uniformity_and_interpolate, deterministic, r2_inv
+from SA_functions import *
 from pedophysics import predict, Soil
 from utils.spatial_utils import utm_to_epsg, get_coincident, get_stats_within_radius
 from FDEM import Initialize as FDEM
@@ -570,70 +570,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         # Remove coils for inversion?
 
         n = 4                                    
-        if site == 'P':
-            config['coil_n'] = [0, 1]    # indexes of coils to remove (cf. emagpy indexing)
-                                        # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
-
-            config['reference_profile'] = 15 # ID of ERT (conductivity) profile to be used 
-                                        #  to generate starting model
-                                        # For proefhoeve nr 15 is used, for middelkerke 65
-
-        elif site == 'M':
-            config['coil_n'] = [2, 3]    # indexes of coils to remove (cf. emagpy indexing)
-                                        # for Proefhoeve, coils 0 (HCP05) and 1 (PRP06) are best
-
-            config['reference_profile'] = 65 # ID of ERT (conductivity) profile to be used 
-                                            #  to generate starting model
-                                            # For proefhoeve nr 15 is used, for middelkerke 65
-
-        #print(config['coil_n'])
-        # Define the interfaces depths between layers for starting model and inversion
-        config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
-                                # otherwise reference profile interfaces are used
-
-        if interface == 'observed':
-
-            config['interface'] = [0.3, 0.6, 1.0, 2.0 ] # depths to custom model interfaces
-
-            #if site == 'M':
-            #    config['bounds'] = [(5, 80), (50, 380), (76, 820), (100, 1000), (150, 1000)]
-            #elif site == 'P':
-            #    config['bounds'] = [(10, 55), (20, 120), (50, 335), (50, 250), (10, 50)] 
-
-        elif interface == 'log':
-            logint = np.geomspace(0.15, 2, num=7)
-            logint[1:] += 0.15
-            config['interface'] = logint.tolist()
-
-            #if site == 'M':
-            #    config['bounds'] = [(5, 80), (20, 300), (30, 380), (50, 350), (76, 600), (80, 700), (100, 1000), (130, 800)]
-            #elif site == 'P':
-            #    config['bounds'] = [(10, 55), (15, 100), (20, 160), (30, 200), (50, 335), (60, 300), (75, 500), (60, 500)] 
-
-
-            # Define the interfaces depths between layers for starting model and inversion
-            #           (number of layers = len(config['interface'])+1)
-        config['n_int'] = True # if True custom interfaces are defined (via config['interface']), 
-                                # otherwise reference profile interfaces are used
-
-        # Inversion constraining
-        # if constrained inversion is used, you can set custom EC bounds (and other params)
-
-        config['custom_bounds'] = False
-
-        if config['n_int'] == False and config['custom_bounds']:
-            print('Check if bounds and number of interfaces match')
-
-        # Geographic operations (if needed)
-        #c_transform = False
-        #c_utmzone = '31N'
-        #c_target_cs = 'EPSG:31370'
-
-        # remove profiles at transect edges
-        config['n_omit'] =  10 # number of profiles to exclude from the start
-                            # and end of the ERT transect (none = 0) for the inversion
-                            # a total of 60 profiles is available, for middelkerke
-                            # 120 profiles are available  
+        inv_config(site, config, interface)
 
         # ---------------------------------------------------------------------------- #
         # ---------------------------------------------------------------------------- #
@@ -680,6 +617,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
 
         config['instrument_height'] = 0.165
         config['instrument_orientation'] = 'HCP'    # instrument orientation
+
         instrument = Initialize.Instrument(config['instrument_code'],
                                             instrument_height=config['instrument_height'],
                                             instrument_orientation=config['instrument_orientation']
@@ -712,11 +650,6 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         #    em_rec = utm_to_epsg(em_rec, c_utmzone, target_epsg=c_target_cs)
         #    em_lin = utm_to_epsg(em_lin, c_utmzone, target_epsg=c_target_cs)
         #    em_survey = utm_to_epsg(em_survey, c_utmzone, target_epsg=c_target_cs)
-
-        #instrument = Initialize.Instrument(config['instrument_code'],
-        #                                    instrument_height=config['instrument_height'],
-        #                                        instrument_orientation=config['instrument_orientation']
-        #                                        )
 
         if sample_loc == 'closest':
             em_samples = get_coincident(em_survey, samples)
@@ -814,30 +747,6 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         #plot_profile(ert_eval, profile_id, dataset_name, compare=True, compare_df = comparedf, compare_name = 'EC(mS/m)', block=True, plot_title=plot_title)
 
         # Get prior model info
-        def generate_forward_model_inputs(df, profile_id_col, depth_col, res_col):
-            models = {}  # Dictionary to store models by profile ID
-
-            for profile_id, group in df.groupby(profile_id_col):
-                # Assuming uniform interval after previous interpolation
-                uniform_interval = abs(group[depth_col].diff().iloc[1])
-                #print(uniform_interval)
-                num_layers = len(group[res_col])
-                        # Thicknesses are the intervals between depths, except for the last value which does not define a new layer
-                thick = np.full(num_layers - 1, uniform_interval)
-                thick[0] = 2 * thick[0]
-                # Conductivity is the inverse of resistivity
-                con = group[res_col].values/1000
-                # Permittivity is the epsilon_0 for all layers
-                perm = np.full(num_layers, constants.epsilon_0)
-                sus = np.zeros(num_layers)
-                # Create model instance
-                M = Initialize.Model(thick, sus[::-1], con[::-1], perm[::-1])
-                
-                # Store the model instance in the dictionary with the profile ID as the key
-                models[profile_id] = M
-            return models
-
-
         models = generate_forward_model_inputs(merged_df, 'ID', 'Z', 'EC(mS/m)')
 
     ########################################################################################################################
@@ -999,25 +908,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
 #            maxstat = np.flipud(ec_stats.loc['max'].values)
  #           start_mod = ec_stats.loc['mean'].values
 
-        if config['constrain']:
-            #if config['custom_bounds']:
-            #    bounds = config['bounds']
-            #else:
-                bounds = []
-                for i, name in enumerate(ec_cols_ref):
-                    if ec_stats.loc['min_sd'][name] > 0:
-                        nmin = ec_stats.loc['min_sd'][name]
-                    elif ec_stats.loc['min'][name] > 0:
-                        nmin = ec_stats.loc['min'][name]
-                    else:
-                        nmin = 10
-                    nmax = ec_stats.loc['max_sd'][name]
-                    min_max = tuple([nmin,nmax])
-                    bounds.append(min_max)
-                bounds = np.round(bounds, decimals=0)
-            #    if not config['n_int'] and not config['custom_bounds']:
-            #        bounds = bounds[1:]
-                #print(f'autobounds = {bounds}')
+        bounds = constrain_bounds(config, ec_cols_ref, ec_stats)
         
     ########################################################################################################################
 
@@ -1092,32 +983,15 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         # invert using ROPE solver (RObust Parameter Estimation)
         warnings.filterwarnings('ignore')
 
-        if MinM in ['MCMC', 'ROPE']:
-            if config['constrain']:
-                print(f'Constrained inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
-                s_rec.invert(forwardModel=FM, method=MinM, 
-                                regularization=reg_meth, alpha=alpha, njobs=-1,
-                                bnds=bounds, options={'maxiter': 100, 'disp': True})
-            else:
-                print(f'Inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
-                s_rec.invert(forwardModel=FM, method=MinM, 
-                                regularization=reg_meth, alpha=alpha, njobs=-1)
-        else:
-            if config['constrain']:
-                print(f'Constrained Inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
-                s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha, regularization=reg_meth, 
-                                bnds=bounds)
-            else: 
-                print(f'Inversion using {FM} with {MinM}, reg={reg_meth}, alpha={alpha}')
-                s_rec.invert(forwardModel=FM, method=MinM, alpha=alpha, regularization=reg_meth)
-                
+        inv_samples(config, reg_meth, FM, MinM, alpha, s_rec, bounds)
         #s_rec.showOne2one()  
 
         survey = s_rec.surveys[0]
         dfsForward = s_rec.forward(forwardModel=FM)[0]
         r2 = pd.DataFrame(columns=np.r_[s_rec.coils, ['all']])
         coils = s_rec.coils
-        r2inv = r2_inv(survey, dfsForward, coils, r2)['all']    
+
+        r2inv = r2_inv(s_rec, survey, dfsForward, r2)['all']   
         print('r2inv', r2inv)
 
     ########################################################################################################################
