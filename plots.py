@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -6,6 +7,8 @@ from scipy.stats import pearsonr
 import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import stats
+from sklearn.linear_model import LinearRegression
+
 
 def bars_plot(feature_sets, test_errors_summary, train_errors_summary, title):
     fig, ax = plt.subplots(figsize=[7, 4])
@@ -48,7 +51,7 @@ def plot_results(df, actual, predicted, r2_val, rmse_val, scale, title):
     dummy_scatter = plt.scatter([], [], c=[], cmap=cmap, vmin=0, vmax=65)
     cbar = plt.colorbar(dummy_scatter, ax=axes)
 
-    axes.plot([0, 0.6], [0, 0.6], color='black', label=f'R2 = {r2_val}; RMSE = {rmse_val}')
+    axes.plot([0, 0.6], [0, 0.6], color='black', label=r'$R^2$'+f'= {r2_val}; RMSE = {rmse_val}')
     axes.set_xlabel("$θ$* [%]")
     axes.set_ylabel("Predicted $θ$* [%]")
     axes.set_title(title)
@@ -159,7 +162,7 @@ def f8(df, Y, Ypred, r2, profile_prefix):
     axes.set_ylim(0, 60)
 
     # Plot a line and label for R2
-    axes.plot([0, 60], [0, 60], color='black', label=f'R2 = {r2}')
+    axes.plot([0, 60], [0, 60], color='black', label=r'$R^2$'+f' = {r2}')
     
     if profile_prefix == 'proefhoeve':
         axes.set_ylabel('Site 2. Stochastic prediction $θ$ [%]', fontsize=18)
@@ -545,3 +548,106 @@ def f10(d1, d2, feat):
     plt.tight_layout()
     # Show plot
     plt.show()
+
+
+def fig3(comb_dfM, comb_dfP, extract):
+    # Setup figure
+    num_rows = 2
+    num_cols = 3
+
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(15, num_rows * 5))
+
+    # Define configurations to plot
+    column_configs1 = ['HCP1QP', 'HCP2QP', 'HCP4QP', 'PRP1QP', 'PRP2QP', 'PRP4QP']
+    column_configs2 = ['HCPHQP', 'HCP1QP', 'HCP2QP', 'PRPHQP', 'PRP1QP', 'PRP2QP']
+
+    # Store regression parameters
+    regression_params1 = {}
+    regression_params2 = {}
+
+    # Fixed axis limits
+    left_min, left_max = 50, 350
+    right_min, right_max = 20, 115
+
+    # Plotting logic for Site 1 (comb_dfM)
+    for i in range(len(column_configs1)):
+
+        measured_col = f'{column_configs1[i]}'
+        modeled_col = f'forward_{column_configs1[i]}'  # Assumes naming convention
+        X1 = comb_dfM[measured_col].values.reshape(-1, 1)
+        y1 = comb_dfM[modeled_col].values
+        regression1 = LinearRegression().fit(X1, y1)
+        regression_params1[measured_col] = (regression1.coef_[0], regression1.intercept_)
+        reg_line1 = regression1.predict(X1)
+
+        if i<=2:
+            ax = axes[0, i]
+            ax.grid(True)
+
+            if ax == axes[0, 0]:
+                scatter = ax.scatter(X1, y1, edgecolor='k', alpha=0.7, label='Data Points')
+                ax.plot([left_min, left_max], [left_min, left_max], 'r--', label='1:1 Line')
+                ax.plot(X1, reg_line1, 'g-', label='Regression Line')
+            else:
+                scatter = ax.scatter(X1, y1, edgecolor='k', alpha=0.7)
+                ax.plot([left_min, left_max], [left_min, left_max], 'r--')
+                ax.plot(X1, reg_line1, 'g-')
+                
+            ax.set_xlim([left_min, left_max])
+            ax.set_ylim([left_min, left_max])
+            ax.set_aspect('equal', adjustable='box')  # Setting aspect ratio to equal
+            axes[0, 0].legend(title='HCP1.0 QP', loc='upper left')
+            axes[0, 1].legend(title='HCP2.0 QP', loc='upper left')
+            axes[0, 2].legend(title='HCP4.0 QP', loc='upper left')
+
+            ax.set_ylabel('')
+
+        if i > 0:  # Remove y-axis labels for center and right column subplots
+            ax.set_yticklabels([])
+
+    axes[0, 0].set_ylabel('Site 1. FW Modeled ERT LIN ECa [mS/m]', fontsize=14)
+
+    # Plotting logic for Site 2 (comb_dfP)
+    for i in range(len(column_configs2)):
+
+        measured_col = f'{column_configs2[i]}'
+        modeled_col = f'forward_{column_configs2[i]}'  # Assumes naming convention
+        X2 = comb_dfP[measured_col].values.reshape(-1, 1)
+        y2 = comb_dfP[modeled_col].values
+        regression2 = LinearRegression().fit(X2, y2)
+        regression_params2[measured_col] = (regression2.coef_[0], regression2.intercept_)
+        reg_line2 = regression2.predict(X2)
+        
+        if i<=2:
+            ax = axes[1, i]
+            ax.grid(True)
+            scatter = ax.scatter(X2, y2, edgecolor='k', alpha=0.7)
+            ax.plot([right_min, right_max], [right_min, right_max], 'r--')
+            ax.plot(X2, reg_line2, 'g-')
+            ax.set_xlim([right_min, right_max])
+            ax.set_ylim([right_min, right_max])
+            ax.set_aspect('equal', adjustable='box')  # Setting aspect ratio to equal
+            axes[1, 0].legend(title='HCP0.5 QP', loc='upper left')
+            axes[1, 1].legend(title='HCP1.0 QP', loc='upper left')
+            axes[1, 2].legend(title='HCP2.0 QP', loc='upper left')
+            
+            ax.set_ylabel('')
+
+        if i > 0:  # Remove y-axis labels for center and right column subplots
+            ax.set_yticklabels([])
+
+    axes[1, 0].set_ylabel('Site 2. FW Modeled ERT LIN ECa [mS/m]', fontsize=14)
+
+    # Set common xlabel
+    for ax in axes[1, :]:
+        ax.set_xlabel(f'FDEM LIN ECa [mS/m]', fontsize=14)
+
+    # Adjust layout to reduce white spaces
+    plt.subplots_adjust(hspace=0.1, wspace=0.1)
+
+    # Save and show the plot
+    cal_metaname = os.path.join('output_images', f'Calibration_plots_'+str(extract)+'.png')
+    plt.savefig(cal_metaname, dpi=300)
+    plt.show()
+
+    return regression_params1, regression_params2
