@@ -151,7 +151,7 @@ def plot_stoch(results, feature_set, target, profile_prefix, em_intype, cal, s_s
     return file_name
 
 
-def f8(df, Y, Ypred, r2, profile_prefix):
+def f8(df, Y, Ypred, r2, rmse, profile_prefix):
     fig, axes = plt.subplots(figsize=[7, 7])
     ss = 200
 
@@ -162,7 +162,7 @@ def f8(df, Y, Ypred, r2, profile_prefix):
     axes.set_ylim(0, 60)
 
     # Plot a line and label for R2
-    axes.plot([0, 60], [0, 60], color='black', label=r'$R^2$'+f' = {r2}')
+    axes.plot([0, 60], [0, 60], color='black', label=r'$R^2$'+f' = {r2}, $RMSE$'+f' = {rmse}')
     
     if profile_prefix == 'proefhoeve':
         axes.set_ylabel('Site 2. Stochastic prediction $θ$ [%]', fontsize=18)
