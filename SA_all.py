@@ -264,31 +264,6 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
 
         # Create forward model inputs per ERT profile (based on number of layers)
         # ---------------------------------------------------------------------- #
-        def generate_forward_model_inputs(df, profile_id_col, depth_col, res_col):
-            models = {}  # Dictionary to store models by profile ID
-
-            for profile_id, group in df.groupby(profile_id_col):
-                # Assuming uniform interval after previous interpolation
-                uniform_interval = group[depth_col].diff().iloc[1]
-                num_layers = len(group[res_col])
-
-                # Thicknesses are the intervals between depths, except for the last value which does not define a new layer
-                thick = np.full(num_layers - 1, uniform_interval)
-                thick[0] = 2 * thick[0]
-                # Conductivity is the inverse of resistivity
-                con = 1 / group[res_col].values
-                # Permittivity is the epsilon_0 for all layers
-                perm = np.full(num_layers, constants.epsilon_0)
-
-                # Susceptibility is 0.0 for all layers
-                sus = np.zeros(num_layers)
-
-                # Create model instance
-                M = FDEM.Model(thick, sus[::-1], con[::-1], perm[::-1])
-                
-                # Store the model instance in the dictionary with the profile ID as the key
-                models[profile_id] = M
-            return models
 
         # Use the function with your DataFrame
         models = generate_forward_model_inputs(all_profiles_df, 'ID', 'Z', 'Smoothed')
@@ -536,7 +511,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
     if os.path.exists(inv_path):
         ds_c = pd.read_csv(inv_path)
 
-    else: 
+    else: # Failed and crashed inversions will be recalculated
         print('########################################################################################################################'
         '############################################# 02 INVERSION CONFIGURE INPUT ################################################')
         # User input
@@ -596,6 +571,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         em_survey = os.path.join(cal_data_dir, f'{emfile_prefix}_raw_calibrated_rECa_{extract}.csv')
         samplocs = os.path.join(datafolder, f'{profile_prefix}_samp_locations.csv')
 
+        print('files read')
         #if em_intype == 'rec':
         #    infile = em_rec
         #elif em_intype == 'survey':
@@ -661,6 +637,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
             elif site == 'M':
                 em_samples = get_stats_within_radius(em_survey, samples, 2)
         
+        print('get ERT profiles')
         # ---------------------------------------------------------------------------- #
         # Get ERT profiles
         # ---------------- #
@@ -725,6 +702,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         else:
             profile_id = config['reference_profile']
 
+        print(' Create new layer configuration for prior model based on ERT data')
         # Create new layer configuration for prior model based on ERT data
         if config['n_int']:
             new_int = config['interface']
@@ -733,6 +711,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
             merged_df = merge_layers(all_profiles_df, new_int,'EC(mS/m)')
         else:
             merged_df = all_profiles_df
+        #print('merged_df', merged_df)
 
         # Plot original and (merged and) DC corrected reference profile
         #if config['n_int']:
@@ -749,6 +728,7 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
         # Get prior model info
         models = generate_forward_model_inputs(merged_df, 'ID', 'Z', 'EC(mS/m)')
 
+        print('forward model inputs generated')
     ########################################################################################################################
 
         # 
@@ -1023,10 +1003,13 @@ def SA(site, extract, sample_loc, interface, FM, MinM, alpha, remove_coil, start
 
         # Export the dataframe as a csv-file
         #outfile_transect = os.path.join(inv_folder, csv_filename)
-        ds_inv.to_csv(inv_path)
+        if r2inv[0] > 0:
+            ds_inv.to_csv(inv_path)
+            
 
         if r2inv[0] < 0:
-            return None
+            inv_path_failed = inv_folder + f'{emfile_prefix}_inverted_samples_{extract}_{sample_loc}_{interface}_{FM}_{MinM}_{alpha}_{remove_coil}_{start_avg}_{constrain}_failed.csv'
+            ds_inv.to_csv(inv_path_failed)
         
     print('########################################################################################################################'
     '############################################ 03 DETERMINISTIC MODELLING ###################################################')
