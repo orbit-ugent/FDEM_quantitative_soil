@@ -266,6 +266,7 @@ def constrain_bounds(config, ec_cols_ref, ec_stats):
 
 
 def generate_forward_model_inputs(df, profile_id_col, depth_col, res_col):
+    print('generate_forward_model_inputs')
     models = {}  # Dictionary to store models by profile ID
 
     for profile_id, group in df.groupby(profile_id_col):
