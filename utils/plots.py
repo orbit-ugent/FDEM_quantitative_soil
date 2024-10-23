@@ -225,6 +225,9 @@ def f7(uncal_LIN_M, cal_LIN_M, cal_rECa_M, inv_M, uncal_LIN_P, cal_LIN_P, cal_rE
             'FDEM Inverted': {'P': inv_P, 'M': inv_M}
         }
 
+        print('bars_data', bars_data)
+        print('approaches', approaches)
+
         lab = np.arange(len(target_set))  # the label locations
         offset_multiplier = -1.5 * width  # Start offset to center bars
 
@@ -235,6 +238,11 @@ def f7(uncal_LIN_M, cal_LIN_M, cal_rECa_M, inv_M, uncal_LIN_P, cal_LIN_P, cal_rE
             ax = axes[i, idx]
 
             for attribute, data in bars_data.items():
+                print('data', data)
+                print('data[soil_type]', data[soil_type])
+                print('data[soil_type][approach]', data[soil_type][approach])
+                print('data[soil_type][approach][:5]', data[soil_type][approach][:5])
+
                 # Add hatch to LIN bars only
                 hatch = hatches.get(attribute, '')
                 hatch_color = 'white' if hatch else None  # Set hatch color to white for LIN bars

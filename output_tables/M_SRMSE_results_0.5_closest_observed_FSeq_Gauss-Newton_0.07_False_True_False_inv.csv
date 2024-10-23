@@ -1,6 +1,1 @@
 Target,BestFeatureLT,LT,BestFeatureLS,LS,BestFeatureLS2,LS2,BestFeature10,Top_layer,BestFeature50,Bottom_layer
-vwc,bulk_ec_inv,0.057,bulk_ec_inv,0.049,bulk_ec_inv,0.047,bulk_ec_inv,0.049,bulk_ec_inv,0.045
-CEC,bulk_ec_inv,1.528,bulk_ec_inv,1.4335,bulk_ec_inv,1.4335,bulk_ec_inv,1.1965,bulk_ec_inv,1.666
-clay,bulk_ec_inv,7.882,bulk_ec_inv,7.6955,bulk_ec_inv,7.6955,bulk_ec_inv,4.0745000000000005,bulk_ec_inv,8.922
-bd,bulk_ec_inv,0.093,bulk_ec_inv,0.083,bulk_ec_inv,0.0835,bulk_ec_inv,0.048,bulk_ec_inv,0.107
-water_ec_hp,bulk_ec_inv,0.014,bulk_ec_inv,0.013,bulk_ec_inv,0.013,bulk_ec_inv,0.017,bulk_ec_inv,0.005
