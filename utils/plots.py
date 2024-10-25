@@ -11,6 +11,18 @@ from sklearn.linear_model import LinearRegression
 
 
 def bars_plot(feature_sets, test_errors_summary, train_errors_summary, title):
+    """
+    Plots bar charts comparing test and train errors for different feature sets.
+
+    Parameters:
+    - feature_sets (list): Names of the feature sets being compared.
+    - test_errors_summary (list): List of test errors corresponding to the feature sets.
+    - train_errors_summary (list): List of train errors corresponding to the feature sets.
+    - title (str): Title for the y-axis and chart.
+
+    Returns:
+    - None
+    """
     fig, ax = plt.subplots(figsize=[7, 4])
     width = 0.35  # the width of the bars
 
@@ -31,7 +43,21 @@ def bars_plot(feature_sets, test_errors_summary, train_errors_summary, title):
 
 
 def plot_results(df, actual, predicted, r2_val, rmse_val, scale, title):
-    
+    """
+    Plots the relationship between actual and predicted values with annotations for R² and RMSE.
+
+    Parameters:
+    - df (DataFrame): Data containing the depth values.
+    - actual (array-like): Actual values for comparison.
+    - predicted (array-like): Predicted values to be plotted.
+    - r2_val (float): The R² value of the model.
+    - rmse_val (float): The RMSE value of the model.
+    - scale (array-like): Scale for the color intensity.
+    - title (str): Title for the chart.
+
+    Returns:
+    - None
+    """
     fig, axes = plt.subplots(figsize=[7, 4])
     ss = 100
     
@@ -63,6 +89,23 @@ def plot_results(df, actual, predicted, r2_val, rmse_val, scale, title):
 
 
 def plot_det(results, feature_set, target, profile_prefix, em_intype, cal, s_site, indicator, color_lt, color_ls, color_id):
+    """
+    Plots deterministic distributions for a given feature set and target.
+
+    Parameters:
+    - results (dict): Dictionary containing scores for each feature set.
+    - feature_set (list): List of feature names.
+    - target (str): The target variable name.
+    - profile_prefix (str): Prefix for profile naming.
+    - em_intype (str): Electromagnetic input type.
+    - cal (str): Calibration information.
+    - s_site (str): Site identifier.
+    - indicator (str): Indicator (e.g., 'R2') to determine the x-axis range.
+    - color_lt, color_ls, color_id (str): Colors for the different score types.
+
+    Returns:
+    - None
+    """
     # Create subplots
     fig, axes = plt.subplots(nrows=len(feature_set), ncols=1, figsize=(10, 3 * len(feature_set)), sharex=True, sharey=True)
     if not isinstance(axes, np.ndarray):
@@ -106,7 +149,23 @@ def plot_det(results, feature_set, target, profile_prefix, em_intype, cal, s_sit
 
 
 def plot_stoch(results, feature_set, target, profile_prefix, em_intype, cal, s_site, indicator, color_lt, color_ls, color_LS2):
-    # Create subplots
+    """
+    Plots stochastic distributions for given features and targets.
+
+    Parameters:
+    - results (dict): Dictionary containing scores for each feature set.
+    - feature_set (list): List of feature names.
+    - target (str): The target variable name.
+    - profile_prefix (str): Prefix for profile naming.
+    - em_intype (str): Electromagnetic input type.
+    - cal (str): Calibration information.
+    - s_site (str): Site identifier.
+    - indicator (str): Indicator (e.g., 'R2') to determine the x-axis range.
+    - color_lt, color_ls, color_LS2 (str): Colors for different score categories.
+
+    Returns:
+    - file_name (str): The name of the saved plot file.
+    """
     fig, axes = plt.subplots(nrows=len(feature_set), ncols=1, figsize=(10, 3 * len(feature_set)), sharex=True, sharey=True)
     if not isinstance(axes, np.ndarray):
         axes = [axes]  # Make it iterable even if there's only one subplot
@@ -152,6 +211,20 @@ def plot_stoch(results, feature_set, target, profile_prefix, em_intype, cal, s_s
 
 
 def f8(df, Y, Ypred, r2, rmse, profile_prefix):
+    """
+    Generates a scatter plot of observed vs. predicted values with depth-specific markers.
+
+    Parameters:
+    - df (DataFrame): DataFrame containing depth information.
+    - Y (array-like): Observed values.
+    - Ypred (array-like): Predicted values.
+    - r2 (float): R² value of the model.
+    - rmse (float): RMSE value of the model.
+    - profile_prefix (str): Prefix for the site or profile name.
+
+    Returns:
+    - None
+    """
     fig, axes = plt.subplots(figsize=[7, 7])
     ss = 200
 
@@ -213,7 +286,18 @@ def f8(df, Y, Ypred, r2, rmse, profile_prefix):
 
 
 def f7(uncal_LIN_M, cal_LIN_M, cal_rECa_M, inv_M, uncal_LIN_P, cal_LIN_P, cal_rECa_P, inv_P, target_set, approaches):
-    # Setup the subplots
+    """
+    Creates bar plots to compare different calibration approaches across targets.
+
+    Parameters:
+    - uncal_LIN_M, cal_LIN_M, cal_rECa_M, inv_M (dict): Calibration results for Site 1.
+    - uncal_LIN_P, cal_LIN_P, cal_rECa_P, inv_P (dict): Calibration results for Site 2.
+    - target_set (list): List of target names.
+    - approaches (list): List of calibration approaches.
+
+    Returns:
+    - None
+    """
     fig, axes = plt.subplots(2, len(approaches), figsize=(15, 10), sharey=True, sharex=True)
     width = 0.2  # the width of the bars
 
@@ -281,8 +365,18 @@ def f7(uncal_LIN_M, cal_LIN_M, cal_rECa_M, inv_M, uncal_LIN_P, cal_LIN_P, cal_rE
 
 
 def f5(df, preds, targets, site):
-        # TODO remove subtitles and add top/sub soil to the x axes legend. 
+    """
+    Creates scatter plots comparing predictions to targets with site-specific customization.
 
+    Parameters:
+    - df (DataFrame): Data containing the features and target values.
+    - preds (list): List of predictors to plot.
+    - targets (list): List of target variables.
+    - site (str): Identifier for the site (e.g., 'M', 'P').
+
+    Returns:
+    - None
+    """
     global_max_x = float('-inf')
 
     # Adjusting the figure size and axes
@@ -348,10 +442,20 @@ def f5(df, preds, targets, site):
     plt.show()
 
 
-def SA_plot(file_path_all_, SA_results, indicator):
-    # Load your DataFrame
-    dtM = pd.read_csv(SA_results + 'dt' + 'M' + '_' + file_path_all_ + '.csv')
-    dtP = pd.read_csv(SA_results + 'dt' + 'P' + '_' + file_path_all_ + '.csv')
+def SA_plot(file_path, SA_results, indicator):
+    """
+    Generates boxplots for sensitivity analysis results.
+
+    Parameters:
+    - file_path (str): Path for saving the plot.
+    - SA_results (str): Directory containing sensitivity analysis result files.
+    - indicator (str): Performance indicator (e.g., 'RMSE') for plotting.
+
+    Returns:
+    - None
+    """
+    dtM = pd.read_csv(SA_results + 'dt' + 'M' + '_' + file_path + '.csv')
+    dtP = pd.read_csv(SA_results + 'dt' + 'P' + '_' + file_path + '.csv')
 
     # Convert boolean columns to string for better plotting
     dtP['Remove coil'] = dtP['Remove coil'].astype(str)
@@ -426,11 +530,22 @@ def SA_plot(file_path_all_, SA_results, indicator):
     fig.subplots_adjust(top=0.95, hspace=0.1)
 
     # Save and show the plot
-    plt.savefig('output_images/' + file_path_all_ + indicator + '.png', dpi=300)
+    plt.savefig('output_images/' + file_path + indicator + '.png', dpi=300)
     plt.show()
 
 
 def f6(d1, d2, targets, preds):
+    """
+    Plots scatter plots of targets vs. predictors for two sites with clay content as a color scale.
+
+    Parameters:
+    - d1, d2 (DataFrame): Data for two different sites.
+    - targets (list): List of target variables.
+    - preds (list): List of predictors.
+
+    Returns:
+    - None
+    """
     global_max_x = float('-inf')
 
     # Use Constrained_layout for better handling of space
@@ -494,7 +609,16 @@ def f6(d1, d2, targets, preds):
 
 
 def f10(d1, d2, feat):
-    # Create a figure and axes
+    """
+    Creates scatter plots comparing different variables and fits regression lines.
+
+    Parameters:
+    - d1, d2 (DataFrame): DataFrames for two datasets.
+    - feat (str): Feature name to be compared.
+
+    Returns:
+    - None
+    """
     fig, axs = plt.subplots(3, 1, figsize=(8, 15))
     corr1 = np.corrcoef(d1.res_ideal_hp, d1[feat])[0, 1]
     corr2 = np.corrcoef(d2.res_ideal_hp, d2[feat])[0, 1]
@@ -552,6 +676,17 @@ def f10(d1, d2, feat):
 
 
 def fig3(comb_dfM, comb_dfP, extract):
+    """
+    Generates regression plots for forward-modeled ERT against measured values for two sites.
+
+    Parameters:
+    - comb_dfM, comb_dfP (DataFrame): Combined data for Site 1 and Site 2.
+    - extract (str): Extract method or identifier.
+
+    Returns:
+    - regression_params1 (dict): Regression parameters for Site 1.
+    - regression_params2 (dict): Regression parameters for Site 2.
+    """
     # Setup figure
     num_rows = 2
     num_cols = 3
