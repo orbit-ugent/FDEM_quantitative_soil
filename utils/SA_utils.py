@@ -23,6 +23,7 @@ parent_dir = os.path.dirname(current_dir)
 pedophysics_code_path = os.path.join(parent_dir)
 sys.path.insert(0, pedophysics_code_path)
 from utils.SA_utils import *
+from utils.PM import *
 from pedophysics import predict, Soil
 from utils.spatial_utils import get_coincident, get_stats_within_radius
 from FDEM import Modeling as Mod
